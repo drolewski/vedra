@@ -1,0 +1,16 @@
+application:
+  cors:
+    allowed-origins:
+      - "https://vedra.xpp"
+    allowed-methods:
+      - GET
+      - POST
+      - PUT
+      - PATCH
+      - DELETE
+      - OPTIONS
+    allowed-headers:
+      - Content-Type
+      - Accept-Language
+      - Accept
+      - Authorization
