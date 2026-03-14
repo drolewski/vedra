@@ -8,7 +8,6 @@ import org.springframework.stereotype.Component
 class ControllerAdviceMessageTranslator(
     private val controllerAdviceMessageSource: MessageSource,
 ) {
-
     fun translate(messageKey: String): String {
         val locale = LocaleContextHolder.getLocaleContext()
         return controllerAdviceMessageSource.getMessage(messageKey, null, locale?.locale)

@@ -10,9 +10,9 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer
 class CorsConfig(
     private val corsProperties: CorsProperties,
 ) : WebMvcConfigurer {
-
     override fun addCorsMappings(registry: CorsRegistry) {
-        registry.addMapping("/api/**")
+        registry
+            .addMapping("/api/**")
             .allowedOrigins(*corsProperties.allowedOrigins.toTypedArray())
             .allowedMethods(*corsProperties.allowedMethods.toTypedArray())
             .allowedHeaders(*corsProperties.allowedHeaders.toTypedArray())

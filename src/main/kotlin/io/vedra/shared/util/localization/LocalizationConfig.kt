@@ -7,7 +7,6 @@ import java.util.Locale
 
 @Configuration
 class LocalizationConfig {
-
     @Bean
     fun localeResolver(): AcceptHeaderLocaleResolver {
         val resolver = AcceptHeaderLocaleResolver()

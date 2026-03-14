@@ -11,13 +11,13 @@ import org.springframework.web.bind.annotation.ExceptionHandler
 class GlobalControllerAdvice(
     private val controllerAdviceMessageTranslator: ControllerAdviceMessageTranslator,
 ) {
-
     @ExceptionHandler(Exception::class)
     fun handleException(ex: Exception): ResponseEntity<ErrorResponse> {
-        val errorResponse = ErrorResponse(
-            status = HttpStatus.BAD_REQUEST.value(),
-            message = controllerAdviceMessageTranslator.translate(GLOBAL_EXCEPTION),
-        )
+        val errorResponse =
+            ErrorResponse(
+                status = HttpStatus.BAD_REQUEST.value(),
+                message = controllerAdviceMessageTranslator.translate(GLOBAL_EXCEPTION),
+            )
         return ResponseEntity(errorResponse, HttpStatus.BAD_REQUEST)
     }
 
