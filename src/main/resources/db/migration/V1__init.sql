@@ -3,9 +3,11 @@ CREATE EXTENSION IF NOT EXISTS vector;
 CREATE TABLE IF NOT EXISTS knowledge_entries (
     id UUID PRIMARY KEY,
     tenant_id UUID NOT NULL,
-    source VARCHAR(50) NOT NULL,
+    source VARCHAR(50),
     content TEXT NOT NULL,
-    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+    embedding vector(1536),
+    metadata JSONB,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX idx_knowledge_entries_tenant_id ON knowledge_entries(tenant_id);
+CREATE INDEX idx_knowledge_entries_embedding ON knowledge_entries USING HNSW (embedding vector_cosine_ops);

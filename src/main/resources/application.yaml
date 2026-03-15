@@ -19,12 +19,11 @@ spring:
     baseline-on-migrate: true
     baseline-version: 0
   ai:
-    vectorstore:
-      pgvector:
-        table-name: "knowledge_entries"
-        index-type: HNSW
-        distance-type: COSINE
-        dimensions: 1536
+    ollama:
+      base-url: http://localhost:11434
+      embedding:
+        options:
+          model: nomic-embed-text
 
 application:
   cors:

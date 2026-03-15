@@ -17,6 +17,18 @@ spring:
     locations: classpath:db/migration
     baseline-on-migrate: true
     baseline-version: 0
+  ai:
+    ollama:
+      base-url: http://localhost:11434
+      embedding:
+        options:
+          model: nomic-embed-text
+    vectorstore:
+      pgvector:
+        index-type: HNSW
+        distance-type: COSINE
+        dimensions: 768
+        initialize-schema: true
 
 logging:
   level:
