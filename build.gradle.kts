@@ -31,6 +31,9 @@ dependencies {
     implementation("org.postgresql:postgresql")
     implementation("org.jetbrains.kotlin:kotlin-reflect")
     implementation("io.projectreactor.kotlin:reactor-kotlin-extensions")
+
+    runtimeOnly("io.netty:netty-resolver-dns-native-macos:4.1.101.Final:osx-aarch_64")
+
     testImplementation("org.springframework.boot:spring-boot-starter-webmvc-test")
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
 }
