@@ -1,0 +1,22 @@
+meta {
+  name: POST for answer
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/api/v1/chat
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "question": "Jakie są sposoby naprawy OOM?"
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

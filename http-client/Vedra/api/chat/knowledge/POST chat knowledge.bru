@@ -1,0 +1,27 @@
+meta {
+  name: POST chat knowledge
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/api/v1/chat/knowledge
+  body: json
+  auth: inherit
+}
+
+headers {
+  Accept-Language: pl
+}
+
+body:json {
+  {
+    "question": "Jakie są sposoby naprawy OOM?",
+    "answer": "Zwiększenie rozmiaru sterty (Heap Size), znalezienie problemów w kodzie, N+1"
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
