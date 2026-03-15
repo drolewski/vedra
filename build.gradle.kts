@@ -16,7 +16,13 @@ repositories {
 
 dependencies {
     implementation("org.springframework.boot:spring-boot-starter-webmvc")
+    implementation("org.springframework.boot:spring-boot-starter-data-jpa")
+    implementation("org.springframework.boot:spring-boot-starter-data-jdbc")
+    implementation("org.springframework.ai:spring-ai-pgvector-store-spring-boot-starter:2.0.0-M1")
+    implementation("org.postgresql:postgresql")
     implementation("org.jetbrains.kotlin:kotlin-reflect")
+    implementation("io.hypersistence:hypersistence-utils-hibernate-63:3.9.0")
+    implementation("io.projectreactor.kotlin:reactor-kotlin-extensions")
     testImplementation("org.springframework.boot:spring-boot-starter-webmvc-test")
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
 }
