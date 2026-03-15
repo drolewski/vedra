@@ -4,41 +4,42 @@ import com.pgvector.PGvector
 import io.vedra.domain.repository.knowledge.KnowledgeRepository
 import io.vedra.infrastructure.database.knowledge.KnowledgeEntry
 import io.vedra.infrastructure.database.knowledge.KnowledgeSourceType
-import org.springframework.ai.embedding.EmbeddingModel
+import io.vedra.infrastructure.embedding.EmbeddingPort
 import org.springframework.stereotype.Service
-import java.util.UUID
+import java.util.*
 
 @Service
 class KnowledgeService(
     private val knowledgeRepository: KnowledgeRepository,
-    private val embeddingModel: EmbeddingModel,
+    private val embeddingPort: EmbeddingPort,
 ) {
     fun answerQuestion(question: String): String {
-        val results = knowledgeRepository.findSimilarByEmbedding(pgVector(question), 3)
+//        val results = knowledgeRepository.findSimilarByEmbedding(question, 3)
 
-        return if (results.isNotEmpty()) {
-            results.joinToString("\n---\n") { it.content }
-        } else {
-            "Brak wyników w bazie wiedzy"
-        }
+//        return if (results.isNotEmpty()) {
+//            results.joinToString("\n---\n") { it.content }
+//        } else {
+//            "Brak wyników w bazie wiedzy"
+//        }
+        return ""
     }
 
     fun addKnowledge(
         question: String,
         answer: String,
-    ) {
-        val entry =
-            KnowledgeEntry(
-                content = question,
-                embedding = pgVector(question),
-                tenantId = TENANT_ID,
-                source = KnowledgeSourceType.FAQ,
-                metadata = mapOf("answer" to answer),
-            )
-        knowledgeRepository.save(entry)
+    ): KnowledgeEntry {
+        val embedding = embeddingPort.embed(question)
+        val entry = toEntity(embedding, question, answer)
+        return knowledgeRepository.save(entry)
     }
 
-    private fun pgVector(question: String): PGvector = PGvector(embeddingModel.embed(question))
+    private fun toEntity(embedding: PGvector, question: String, answer: String) = KnowledgeEntry(
+        tenantId = TENANT_ID,
+        source = KnowledgeSourceType.FAQ,
+        content = question,
+        metadata = mapOf("answer" to answer),
+        embedding = embedding,
+    )
 
     companion object {
         val TENANT_ID = UUID.randomUUID()
