@@ -14,14 +14,10 @@ class KnowledgeService(
     private val embeddingPort: EmbeddingPort,
 ) {
     fun answerQuestion(question: String): String {
-//        val results = knowledgeRepository.findSimilarByEmbedding(question, 3)
-
-//        return if (results.isNotEmpty()) {
-//            results.joinToString("\n---\n") { it.content }
-//        } else {
-//            "Brak wyników w bazie wiedzy"
-//        }
-        return ""
+        val embedding = embeddingPort.embed(question)
+        return knowledgeRepository.findSimilar(TENANT_ID, embedding.toString())
+            .firstOrNull()
+            ?.let { return it.answer() ?: "" } ?: ""
     }
 
     fun addKnowledge(
@@ -42,6 +38,6 @@ class KnowledgeService(
     )
 
     companion object {
-        val TENANT_ID = UUID.randomUUID()
+        val TENANT_ID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB")
     }
 }

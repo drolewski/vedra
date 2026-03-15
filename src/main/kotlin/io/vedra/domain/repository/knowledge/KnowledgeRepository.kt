@@ -1,24 +1,56 @@
 package io.vedra.domain.repository.knowledge
 
-import com.pgvector.PGvector
 import io.vedra.infrastructure.database.knowledge.KnowledgeEntry
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.Query
-import org.springframework.data.repository.query.Param
 import java.util.UUID
 
 interface KnowledgeRepository : JpaRepository<KnowledgeEntry, UUID> {
     @Query(
         value = """
             SELECT * FROM knowledge_entries
-            WHERE embedding IS NOT NULL
-            ORDER BY embedding <=> CAST(:embedding AS vector)
-            LIMIT :limit
+            WHERE  tenant_id = :tenantId
+            ORDER  BY embedding <=> CAST(:embedding AS vector)
+            LIMIT  :limit
         """,
         nativeQuery = true,
     )
-    fun findSimilarByEmbedding(
-        @Param("embedding") embedding: PGvector,
-        @Param("limit") limit: Int,
+    fun findSimilar(
+        tenantId:  UUID,
+        embedding: String,
+        limit:     Int = 5,
     ): List<KnowledgeEntry>
+
+    @Query(
+        value = """
+            SELECT   id,
+                     content,
+                     metadata,
+                     source,
+                     tenant_id,
+                     created_at,
+                     embedding,
+                     1 - (embedding <=> CAST(:embedding AS vector)) AS score
+            FROM     knowledge_entries
+            WHERE    tenant_id  = :tenantId
+              AND    1 - (embedding <=> CAST(:embedding AS vector)) >= :minScore
+            ORDER BY score DESC
+            LIMIT    :limit
+        """,
+        nativeQuery = true,
+    )
+    fun findSimilarWithScore(
+        tenantId:  UUID,
+        embedding: String,
+        limit:     Int = 5,
+        minScore:  Double = 0.7,
+    ): List<SimilarityResultProjection>
+}
+
+interface SimilarityResultProjection {
+    val id: UUID
+    val content: String
+    val metadata: String
+    val source: String
+    val score: Double
 }
