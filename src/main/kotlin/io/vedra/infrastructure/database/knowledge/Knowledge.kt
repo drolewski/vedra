@@ -25,7 +25,7 @@ data class KnowledgeEntry(
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(columnDefinition = "jsonb")
     val metadata: Map<String, Any> = emptyMap(),
-    @Column(columnDefinition = "vector(1536)")
+    @Column(columnDefinition = "vector(768)")
     var embedding: PGvector? = null,
     val createdAt: Instant = Instant.now(),
 )

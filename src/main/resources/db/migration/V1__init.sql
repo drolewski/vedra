@@ -5,7 +5,7 @@ CREATE TABLE IF NOT EXISTS knowledge_entries (
     tenant_id UUID NOT NULL,
     source VARCHAR(50),
     content TEXT NOT NULL,
-    embedding vector(1536),
+    embedding vector(768),
     metadata JSONB,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
