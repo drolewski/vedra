@@ -1,4 +1,4 @@
-package io.veda.domain.service
+package io.vedra.domain.service
 
 import com.pgvector.PGvector
 import io.vedra.domain.repository.knowledge.KnowledgeRepository

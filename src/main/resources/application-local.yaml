@@ -29,6 +29,7 @@ spring:
         distance-type: COSINE_DISTANCE
         dimensions: 768
         initialize-schema: true
+        table-name: knowledge_entries
 
 logging:
   level:
