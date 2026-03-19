@@ -13,7 +13,6 @@ import org.springframework.web.bind.annotation.RestController
 class SlackEventsController(
     private val eventProcessor: SlackEventProcessor,
 ) {
-
     @PostMapping
     fun slackEvents(
         @RequestBody body: Map<String, Any>,

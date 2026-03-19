@@ -9,7 +9,6 @@ import org.springframework.stereotype.Component
 class OllamaEmbeddingAdapter(
     private val embeddingModel: EmbeddingModel,
 ) : EmbeddingPort {
-
     override fun embed(text: String): PGvector =
         embeddingModel
             .embed(text)

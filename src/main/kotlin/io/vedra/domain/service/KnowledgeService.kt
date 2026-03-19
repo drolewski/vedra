@@ -7,7 +7,7 @@ import io.vedra.infrastructure.database.knowledge.KnowledgeEntry
 import io.vedra.infrastructure.database.knowledge.KnowledgeSourceType
 import io.vedra.infrastructure.embedding.EmbeddingPort
 import org.springframework.stereotype.Service
-import java.util.*
+import java.util.UUID
 
 @Service
 class KnowledgeService(
@@ -17,44 +17,50 @@ class KnowledgeService(
 ) {
     fun answerQuestion(question: String): String {
         val embedding = embeddingPort.embed(question)
-        val similarEntries = knowledgeRepository.findSimilarWithScore(
-            tenantId = TENANT_ID,
-            embedding = embedding.toString(),
-            limit = 3,
-            minScore = 0.7,
-        )
+        val similarEntries =
+            knowledgeRepository.findSimilarWithScore(
+                tenantId = TENANT_ID,
+                embedding = embedding.toString(),
+                limit = 3,
+                minScore = 0.7,
+            )
 
-        val context = similarEntries
-            .map { it.metadata["answer"] ?: "" }
-            .filter { it.isNotBlank() }
-            .joinToString("\n---\n")
+        val context =
+            similarEntries
+                .map { it.metadata["answer"] ?: "" }
+                .filter { it.isNotBlank() }
+                .joinToString("\n---\n")
 
         if (context.isBlank()) {
             val branch = "budowlanej"
-            val generateRandomResponse = """
+            val generateRandomResponse =
+                """
                 Jesteś asystentem AI odpowiedzialnym za knowledgebase w firmie z branży $branch.
                 Odpowiadaj TYLKO korzystając z faktów i wiedzy, którą posiadasz. Jeśli pytanie jest zbyt trudne powiedz, że nei wiesz.
                 Odpowiadaj w języku polskim. Jeżeli nie dajesz odpowiedzi to powiedz dlaczego.
-            """.trimIndent()
+                """.trimIndent()
 
-            val userQuestion = """
+            val userQuestion =
+                """
                 Pytanie: $question
-            """.trimIndent()
+                """.trimIndent()
             return llmPort.generate(generateRandomResponse, userQuestion) ?: "Nie udało się wygenerować odpowiedzi."
         }
 
-        val systemPrompt = """
+        val systemPrompt =
+            """
             Jesteś asystentem AI. Odpowiadaj TYLKO na podstawie dostarczonego kontekstu.
             Jeśli kontekst nie zawiera odpowiedzi na pytanie, powiedz że nie wiesz.
             Odpowiadaj w języku polskim.
-        """.trimIndent()
+            """.trimIndent()
 
-        val userPrompt = """
+        val userPrompt =
+            """
             Kontekst:
             $context
             
             Pytanie: $question
-        """.trimIndent()
+            """.trimIndent()
 
         return llmPort.generate(systemPrompt, userPrompt) ?: "Nie udało się wygenerować odpowiedzi."
     }
@@ -68,7 +74,11 @@ class KnowledgeService(
         return knowledgeRepository.save(entry)
     }
 
-    private fun toEntity(embedding: PGvector, question: String, answer: String) = KnowledgeEntry(
+    private fun toEntity(
+        embedding: PGvector,
+        question: String,
+        answer: String,
+    ) = KnowledgeEntry(
         tenantId = TENANT_ID,
         source = KnowledgeSourceType.FAQ,
         content = question,

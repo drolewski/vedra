@@ -11,14 +11,17 @@ import org.springframework.stereotype.Component
 class OllamaLLMAdapter(
     private val chatModel: ChatModel,
 ) : LLMPort {
-
-    override fun generate(systemPrompt: String, userPrompt: String): String? {
-        val prompt = Prompt.builder()
-            .messages(
-                SystemMessage(systemPrompt),
-                UserMessage(userPrompt),
-            )
-            .build()
+    override fun generate(
+        systemPrompt: String,
+        userPrompt: String,
+    ): String? {
+        val prompt =
+            Prompt
+                .builder()
+                .messages(
+                    SystemMessage(systemPrompt),
+                    UserMessage(userPrompt),
+                ).build()
         val generation = chatModel.call(prompt)
         return generation.result?.output?.text
     }

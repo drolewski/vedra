@@ -10,7 +10,6 @@ import org.springframework.stereotype.Component
 class MessageEventHandler(
     private val slackMessageService: SlackMessageService,
 ) : SlackEventHandler {
-
     override fun supports(event: SlackEvent): Boolean = event.type == MessageEvent.TYPE_NAME
 
     override fun handle(event: SlackEvent) {

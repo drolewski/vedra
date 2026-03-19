@@ -12,8 +12,8 @@ data class SlackEvent(
         get() = subtype == "bot_message" || botId != null
 
     companion object {
-        fun fromRawPayload(payload: Map<*, *>): SlackEvent {
-            return SlackEvent(
+        fun fromRawPayload(payload: Map<*, *>): SlackEvent =
+            SlackEvent(
                 type = payload["type"] as? String ?: "",
                 subtype = payload["subtype"] as? String,
                 botId = payload["bot_id"] as? String,
@@ -21,6 +21,5 @@ data class SlackEvent(
                 channel = payload["channel"] as? String,
                 threadTs = payload["ts"] as? String,
             )
-        }
     }
 }

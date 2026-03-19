@@ -16,9 +16,9 @@ interface KnowledgeRepository : JpaRepository<KnowledgeEntry, UUID> {
         nativeQuery = true,
     )
     fun findSimilar(
-        tenantId:  UUID,
+        tenantId: UUID,
         embedding: String,
-        limit:     Int = 5,
+        limit: Int = 5,
     ): List<KnowledgeEntry>
 
     @Query(
@@ -40,10 +40,10 @@ interface KnowledgeRepository : JpaRepository<KnowledgeEntry, UUID> {
         nativeQuery = true,
     )
     fun findSimilarWithScore(
-        tenantId:  UUID,
+        tenantId: UUID,
         embedding: String,
-        limit:     Int = 5,
-        minScore:  Double = 0.9,
+        limit: Int = 5,
+        minScore: Double = 0.9,
     ): List<SimilarityResultProjection>
 }
 

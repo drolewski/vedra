@@ -9,7 +9,6 @@ import java.sql.ResultSet
 import java.sql.Types
 
 class PGvectorUserType : UserType<PGvector> {
-
     override fun getSqlType(): Int = Types.OTHER
 
     override fun returnedClass(): Class<PGvector> = PGvector::class.java
@@ -37,11 +36,21 @@ class PGvectorUserType : UserType<PGvector> {
         }
     }
 
-    override fun equals(x: PGvector?, y: PGvector?): Boolean = x == y
+    override fun equals(
+        x: PGvector?,
+        y: PGvector?,
+    ): Boolean = x == y
+
     override fun hashCode(x: PGvector?): Int = x?.hashCode() ?: 0
+
     override fun isMutable(): Boolean = false
+
     override fun deepCopy(value: PGvector?): PGvector? = value
+
     override fun disassemble(value: PGvector?): Serializable? = value?.toString()
-    override fun assemble(cached: Serializable?, owner: Any?): PGvector? =
-        (cached as? String)?.let { PGvector(it) }
+
+    override fun assemble(
+        cached: Serializable?,
+        owner: Any?,
+    ): PGvector? = (cached as? String)?.let { PGvector(it) }
 }

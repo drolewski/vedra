@@ -21,8 +21,8 @@ import java.util.UUID
     name = "knowledge_entries",
     indexes = [
         Index(name = "idx_knowledge_entries_tenant_id", columnList = "tenant_id"),
-        Index(name = "idx_knowledge_entries_source",    columnList = "tenant_id, source"),
-    ]
+        Index(name = "idx_knowledge_entries_source", columnList = "tenant_id, source"),
+    ],
 )
 @TypeRegistration(basicClass = PGvector::class, userType = PGvectorUserType::class)
 data class KnowledgeEntry(
@@ -46,9 +46,9 @@ data class KnowledgeEntry(
     val createdAt: Instant = Instant.now(),
 ) {
     constructor() : this(
-        tenantId  = UUID.randomUUID(),
-        source    = KnowledgeSourceType.FAQ,
-        content   = "",
+        tenantId = UUID.randomUUID(),
+        source = KnowledgeSourceType.FAQ,
+        content = "",
         embedding = PGvector(FloatArray(768)),
     )
 
@@ -62,8 +62,7 @@ data class KnowledgeEntry(
 
     override fun hashCode(): Int = id?.hashCode() ?: 0
 
-    override fun toString(): String =
-        "KnowledgeEntry(id=$id, tenantId=$tenantId, source=$source, createdAt=$createdAt)"
+    override fun toString(): String = "KnowledgeEntry(id=$id, tenantId=$tenantId, source=$source, createdAt=$createdAt)"
 }
 
 enum class KnowledgeSourceType {
