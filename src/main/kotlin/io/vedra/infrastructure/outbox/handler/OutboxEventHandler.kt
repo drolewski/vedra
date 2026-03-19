@@ -1,4 +1,4 @@
-package io.vedra.infrastructure.outbox
+package io.vedra.infrastructure.outbox.handler
 
 import io.vedra.infrastructure.database.outbox.OutboxEvent
 

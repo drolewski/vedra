@@ -1,10 +1,10 @@
 package io.vedra.infrastructure.slack.handler
 
 import com.slack.api.model.event.MessageEvent
-import io.vedra.domain.service.OutboxService
-import io.vedra.infrastructure.outbox.SlackMessageAnswerHandler
+import io.vedra.infrastructure.outbox.service.OutboxService
 import io.vedra.infrastructure.slack.model.SlackEvent
 import io.vedra.infrastructure.slack.model.SlackEventHandler
+import io.vedra.infrastructure.slack.service.outbox.SlackMessageAnswerHandler
 import org.springframework.stereotype.Component
 
 @Component

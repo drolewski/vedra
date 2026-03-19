@@ -61,3 +61,8 @@ application:
 
 slack:
   bot-token: ${SLACK_BOT_TOKEN}
+
+outbox:
+  poll-interval: 5000
+  cleanup-cron: "0 0 3 * * *"
+  cleanup-retention-days: 7

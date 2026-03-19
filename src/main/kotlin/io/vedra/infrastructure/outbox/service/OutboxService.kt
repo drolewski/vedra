@@ -1,10 +1,11 @@
-package io.vedra.domain.service
+package io.vedra.infrastructure.outbox.service
 
-import io.vedra.domain.repository.outbox.OutboxEventRepository
 import io.vedra.infrastructure.database.outbox.OutboxEvent
 import io.vedra.infrastructure.database.outbox.OutboxStatus
+import io.vedra.infrastructure.outbox.repository.OutboxEventRepository
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import java.time.Instant
 
 @Service
 class OutboxService(
@@ -60,4 +61,7 @@ class OutboxService(
         event.markAsFailed(error)
         outboxEventRepository.save(event)
     }
+
+    @Transactional
+    fun deleteCompletedOlderThan(olderThan: Instant): Int = outboxEventRepository.deleteCompletedOlderThan(olderThan)
 }

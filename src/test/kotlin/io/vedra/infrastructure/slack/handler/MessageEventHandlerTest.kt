@@ -3,8 +3,8 @@ package io.vedra.infrastructure.slack.handler
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
-import io.vedra.domain.service.OutboxService
 import io.vedra.infrastructure.database.outbox.OutboxEvent
+import io.vedra.infrastructure.outbox.service.OutboxService
 import io.vedra.infrastructure.slack.model.SlackEvent
 import kotlin.test.Test
 import kotlin.test.assertFalse

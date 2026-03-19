@@ -1,7 +1,8 @@
-package io.vedra.infrastructure.outbox
+package io.vedra.infrastructure.slack.service.outbox
 
 import io.vedra.domain.service.KnowledgeService
 import io.vedra.infrastructure.database.outbox.OutboxEvent
+import io.vedra.infrastructure.outbox.handler.OutboxEventHandler
 import io.vedra.infrastructure.slack.SlackMessageService
 import org.springframework.stereotype.Component
 
