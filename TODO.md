@@ -7,7 +7,9 @@
 4. Dodanie zbierania feedbacku nt. odpowiedzi
 5. Dodanie obsługi tenanta
 6. Refactorki niezbędne
-7. Integracja ze slack/teams
+7. Integracja z/teams
 8. Zbieranie danych z dokumentów fizycznych
 -----
-1. Aync z outbox patternem?
+1. Logger
+2. Aync z outbox patternem?
+3. Metryki?

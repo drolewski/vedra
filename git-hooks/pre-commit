@@ -1,0 +1,15 @@
+#!/bin/sh
+
+echo "Running ktlint check..."
+
+./gradlew ktlintCheck --quiet
+
+if [ $? -ne 0 ]; then
+    echo ""
+    echo "❌ ktlint check failed. Please fix code formatting issues before committing."
+    echo "   Run './gradlew ktlintCheck' to see details."
+    echo "   Run './gradlew ktlintFormat' to auto-fix."
+    exit 1
+fi
+
+echo "✅ Code formatting check passed."
