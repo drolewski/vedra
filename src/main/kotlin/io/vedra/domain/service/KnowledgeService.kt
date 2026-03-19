@@ -13,13 +13,20 @@ import java.util.*
 class KnowledgeService(
     private val knowledgeRepository: KnowledgeRepository,
     private val embeddingPort: EmbeddingPort,
-    private val LLMPort: LLMPort,
+    private val llmPort: LLMPort,
 ) {
     fun answerQuestion(question: String): String {
         val embedding = embeddingPort.embed(question)
-        val context = knowledgeRepository.findSimilarWithScore(TENANT_ID, embedding.toString(), 1)
-            .take(1)
-            .mapNotNull { it.metadata["answer"] }
+        val similarEntries = knowledgeRepository.findSimilarWithScore(
+            tenantId = TENANT_ID,
+            embedding = embedding.toString(),
+            limit = 3,
+            minScore = 0.7,
+        )
+
+        val context = similarEntries
+            .map { it.metadata["answer"] ?: "" }
+            .filter { it.isNotBlank() }
             .joinToString("\n---\n")
 
         if (context.isBlank()) {
@@ -33,7 +40,7 @@ class KnowledgeService(
             val userQuestion = """
                 Pytanie: $question
             """.trimIndent()
-            return LLMPort.generate(generateRandomResponse, userQuestion) ?: "Nie udało się wygenerować odpowiedzi."
+            return llmPort.generate(generateRandomResponse, userQuestion) ?: "Nie udało się wygenerować odpowiedzi."
         }
 
         val systemPrompt = """
@@ -49,7 +56,7 @@ class KnowledgeService(
             Pytanie: $question
         """.trimIndent()
 
-        return LLMPort.generate(systemPrompt, userPrompt) ?: "Nie udało się wygenerować odpowiedzi."
+        return llmPort.generate(systemPrompt, userPrompt) ?: "Nie udało się wygenerować odpowiedzi."
     }
 
     fun addKnowledge(

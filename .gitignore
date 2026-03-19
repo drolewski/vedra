@@ -47,3 +47,7 @@ bin/
 ### Compose ###
 docker/*.yml
 !docker/template-*.yml
+
+# env
+!.env.example
+.env
