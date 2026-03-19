@@ -1,7 +1,9 @@
 package io.vedra.infrastructure.slack.handler
 
+import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
+import io.vedra.domain.service.KnowledgeService
 import io.vedra.infrastructure.slack.SlackMessageService
 import io.vedra.infrastructure.slack.model.SlackEvent
 import kotlin.test.Test
@@ -10,7 +12,8 @@ import kotlin.test.assertTrue
 
 class MessageEventHandlerTest {
     private val slackMessageService: SlackMessageService = mockk(relaxed = true)
-    private val handler = MessageEventHandler(slackMessageService)
+    private val knowledgeService: KnowledgeService = mockk()
+    private val handler = MessageEventHandler(slackMessageService, knowledgeService)
 
     @Test
     fun `should support message event type`() {
@@ -43,20 +46,23 @@ class MessageEventHandlerTest {
     }
 
     @Test
-    fun `should send thread message with palindrome format`() {
+    fun `should send knowledge answer as thread message`() {
         val event =
             SlackEvent(
                 type = "message",
                 subtype = null,
                 botId = null,
-                text = "kajak",
+                text = "Jakie jest prawo Ohma?",
                 channel = "C456",
                 threadTs = "1234567890.123456",
             )
 
+        every { knowledgeService.answerQuestion("Jakie jest prawo Ohma?") } returns "Prawo Ohma: U = I * R"
+
         handler.handle(event)
 
-        verify { slackMessageService.sendThreadMessage("C456", "1234567890.123456", "Palindrom:\n```kajak```") }
+        verify { knowledgeService.answerQuestion("Jakie jest prawo Ohma?") }
+        verify { slackMessageService.sendThreadMessage("C456", "1234567890.123456", "Prawo Ohma: U = I * R") }
     }
 
     @Test
@@ -66,13 +72,14 @@ class MessageEventHandlerTest {
                 type = "message",
                 subtype = null,
                 botId = null,
-                text = "kajak",
+                text = "question",
                 channel = null,
                 threadTs = "1234567890.123456",
             )
 
         handler.handle(event)
 
+        verify(exactly = 0) { knowledgeService.answerQuestion(any()) }
         verify(exactly = 0) { slackMessageService.sendThreadMessage(any(), any(), any()) }
     }
 
@@ -83,13 +90,14 @@ class MessageEventHandlerTest {
                 type = "message",
                 subtype = null,
                 botId = null,
-                text = "kajak",
+                text = "question",
                 channel = "C456",
                 threadTs = null,
             )
 
         handler.handle(event)
 
+        verify(exactly = 0) { knowledgeService.answerQuestion(any()) }
         verify(exactly = 0) { slackMessageService.sendThreadMessage(any(), any(), any()) }
     }
 
@@ -107,6 +115,7 @@ class MessageEventHandlerTest {
 
         handler.handle(event)
 
+        verify(exactly = 0) { knowledgeService.answerQuestion(any()) }
         verify(exactly = 0) { slackMessageService.sendThreadMessage(any(), any(), any()) }
     }
 }
