@@ -7,7 +7,7 @@ import org.springframework.context.annotation.Configuration
 
 @Configuration
 class SlackConfig(
-    @Value("\${slack.bot-token}") private val botToken: String,
+    @Value($$"${slack.bot-token}") private val botToken: String,
 ) {
     @Bean
     fun slackApp(): App {

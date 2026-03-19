@@ -15,6 +15,10 @@
    1. `ollama pull nomic-embed-text`
    2. `ollama pull llama3.2`
 
+# Run ngrok
+1. Install ngrok: https://ngrok.com/download
+2. Run `ngrok http 8080`
+
 # Run the app
 1. Run from IntelliJ with local profile
 2. Run `./gradlew bootRun --args='--spring.profiles.active=local'` from terminal

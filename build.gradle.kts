@@ -29,8 +29,8 @@ dependencies {
     implementation("org.springframework.ai:spring-ai-advisors-vector-store")
     implementation("org.springframework.ai:spring-ai-starter-vector-store-pgvector")
     implementation("org.postgresql:postgresql")
-    implementation("com.slack.api:bolt-servlet:1.42.0")
-    implementation("com.slack.api:bolt:1.42.0")
+    implementation("com.slack.api:bolt-servlet:1.48.0")
+    implementation("com.slack.api:bolt:1.48.0")
     implementation("org.jetbrains.kotlin:kotlin-reflect")
     implementation("io.projectreactor.kotlin:reactor-kotlin-extensions")
 
@@ -52,7 +52,6 @@ dependencyManagement {
         mavenBom("org.springframework.ai:spring-ai-bom:${property("springAiVersion")}")
     }
 }
-
 
 tasks.test {
     useJUnitPlatform()
