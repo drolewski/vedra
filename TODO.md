@@ -19,4 +19,5 @@
 9. Zbieranie danych z dokumentów fizycznych
 -----
 1. Logger
+2. Konfiguracja serwera aplikacji :)
 3. Metryki?
