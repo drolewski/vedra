@@ -1,7 +1,7 @@
-package io.vedra.api.controller.slack.events
+package io.vedra.infrastructure.slack.api.events
 
-import io.vedra.domain.model.SlackEvent
-import io.vedra.domain.service.SlackEventProcessor
+import io.vedra.infrastructure.slack.model.SlackEvent
+import io.vedra.infrastructure.slack.service.SlackEventProcessor
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody

@@ -1,4 +1,4 @@
-package io.vedra.domain.model
+package io.vedra.infrastructure.slack.model
 
 import kotlin.test.Test
 import kotlin.test.assertEquals

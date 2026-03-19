@@ -2,8 +2,8 @@ package io.vedra.infrastructure.slack.handler
 
 import io.mockk.mockk
 import io.mockk.verify
-import io.vedra.domain.model.SlackEvent
 import io.vedra.infrastructure.slack.SlackMessageService
+import io.vedra.infrastructure.slack.model.SlackEvent
 import kotlin.test.Test
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue

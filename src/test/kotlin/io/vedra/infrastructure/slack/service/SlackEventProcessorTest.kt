@@ -1,11 +1,12 @@
-package io.vedra.domain.service
+package io.vedra.infrastructure.slack.service
 
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
-import io.vedra.domain.model.SlackEvent
-import io.vedra.domain.model.SlackEventFilter
-import io.vedra.domain.model.SlackEventHandler
+import io.vedra.infrastructure.slack.filter.BotMessageFilter
+import io.vedra.infrastructure.slack.model.SlackEvent
+import io.vedra.infrastructure.slack.model.SlackEventFilter
+import io.vedra.infrastructure.slack.model.SlackEventHandler
 import kotlin.test.Test
 
 class SlackEventProcessorTest {
@@ -108,8 +109,7 @@ class SlackEventProcessorTest {
             )
 
         val botFilter =
-            io.vedra.infrastructure.slack.filter
-                .BotMessageFilter()
+            BotMessageFilter()
         val botProcessor = SlackEventProcessor(listOf(botFilter), listOf(handler))
 
         botProcessor.process(botEvent)

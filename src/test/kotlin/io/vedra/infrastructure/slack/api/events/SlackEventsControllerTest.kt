@@ -1,11 +1,11 @@
-package io.vedra.api.controller.slack.events
+package io.vedra.infrastructure.slack.api.events
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import io.mockk.mockk
 import io.mockk.verify
-import io.vedra.domain.model.SlackEvent
-import io.vedra.domain.service.SlackEventProcessor
+import io.vedra.infrastructure.slack.model.SlackEvent
+import io.vedra.infrastructure.slack.service.SlackEventProcessor
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.http.MediaType

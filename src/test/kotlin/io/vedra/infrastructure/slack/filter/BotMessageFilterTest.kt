@@ -1,6 +1,6 @@
 package io.vedra.infrastructure.slack.filter
 
-import io.vedra.domain.model.SlackEvent
+import io.vedra.infrastructure.slack.model.SlackEvent
 import kotlin.test.Test
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue

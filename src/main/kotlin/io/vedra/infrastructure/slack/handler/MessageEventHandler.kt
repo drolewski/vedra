@@ -1,9 +1,9 @@
 package io.vedra.infrastructure.slack.handler
 
 import com.slack.api.model.event.MessageEvent
-import io.vedra.domain.model.SlackEvent
-import io.vedra.domain.model.SlackEventHandler
 import io.vedra.infrastructure.slack.SlackMessageService
+import io.vedra.infrastructure.slack.model.SlackEvent
+import io.vedra.infrastructure.slack.model.SlackEventHandler
 import org.springframework.stereotype.Component
 
 @Component
