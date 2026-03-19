@@ -1,16 +1,15 @@
 package io.vedra.infrastructure.slack.handler
 
 import com.slack.api.model.event.MessageEvent
-import io.vedra.domain.service.KnowledgeService
-import io.vedra.infrastructure.slack.SlackMessageService
+import io.vedra.domain.service.OutboxService
+import io.vedra.infrastructure.outbox.SlackMessageAnswerHandler
 import io.vedra.infrastructure.slack.model.SlackEvent
 import io.vedra.infrastructure.slack.model.SlackEventHandler
 import org.springframework.stereotype.Component
 
 @Component
 class MessageEventHandler(
-    private val slackMessageService: SlackMessageService,
-    private val knowledgeService: KnowledgeService,
+    private val outboxService: OutboxService,
 ) : SlackEventHandler {
     override fun supports(event: SlackEvent): Boolean = event.type == MessageEvent.TYPE_NAME
 
@@ -19,9 +18,15 @@ class MessageEventHandler(
         val threadTs = event.threadTs ?: return
         val question = event.text ?: return
 
-        // TODO: Outbox pattern do obsługi odpowiedzi
-        val answer = knowledgeService.answerQuestion(question)
-        // TODO: Formatowanie Decorator pattern
-        slackMessageService.sendThreadMessage(channel, threadTs, answer)
+        outboxService.saveEvent(
+            eventType = SlackMessageAnswerHandler.EVENT_TYPE,
+            aggregateId = threadTs,
+            payload =
+                mapOf(
+                    "channel" to channel,
+                    "threadTs" to threadTs,
+                    "question" to question,
+                ),
+        )
     }
 }

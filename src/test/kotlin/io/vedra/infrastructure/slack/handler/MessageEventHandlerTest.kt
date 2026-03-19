@@ -3,17 +3,16 @@ package io.vedra.infrastructure.slack.handler
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
-import io.vedra.domain.service.KnowledgeService
-import io.vedra.infrastructure.slack.SlackMessageService
+import io.vedra.domain.service.OutboxService
+import io.vedra.infrastructure.database.outbox.OutboxEvent
 import io.vedra.infrastructure.slack.model.SlackEvent
 import kotlin.test.Test
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class MessageEventHandlerTest {
-    private val slackMessageService: SlackMessageService = mockk(relaxed = true)
-    private val knowledgeService: KnowledgeService = mockk()
-    private val handler = MessageEventHandler(slackMessageService, knowledgeService)
+    private val outboxService: OutboxService = mockk(relaxed = true)
+    private val handler = MessageEventHandler(outboxService)
 
     @Test
     fun `should support message event type`() {
@@ -46,7 +45,7 @@ class MessageEventHandlerTest {
     }
 
     @Test
-    fun `should send knowledge answer as thread message`() {
+    fun `should save event to outbox`() {
         val event =
             SlackEvent(
                 type = "message",
@@ -57,16 +56,32 @@ class MessageEventHandlerTest {
                 threadTs = "1234567890.123456",
             )
 
-        every { knowledgeService.answerQuestion("Jakie jest prawo Ohma?") } returns "Prawo Ohma: U = I * R"
+        every {
+            outboxService.saveEvent(
+                eventType = "SLACK_MESSAGE_ANSWER",
+                aggregateId = "1234567890.123456",
+                payload = any(),
+            )
+        } returns OutboxEvent(eventType = "SLACK_MESSAGE_ANSWER", payload = emptyMap())
 
         handler.handle(event)
 
-        verify { knowledgeService.answerQuestion("Jakie jest prawo Ohma?") }
-        verify { slackMessageService.sendThreadMessage("C456", "1234567890.123456", "Prawo Ohma: U = I * R") }
+        verify {
+            outboxService.saveEvent(
+                eventType = "SLACK_MESSAGE_ANSWER",
+                aggregateId = "1234567890.123456",
+                payload =
+                    match {
+                        it["channel"] == "C456" &&
+                            it["threadTs"] == "1234567890.123456" &&
+                            it["question"] == "Jakie jest prawo Ohma?"
+                    },
+            )
+        }
     }
 
     @Test
-    fun `should not send message when channel is null`() {
+    fun `should not save event when channel is null`() {
         val event =
             SlackEvent(
                 type = "message",
@@ -79,12 +94,11 @@ class MessageEventHandlerTest {
 
         handler.handle(event)
 
-        verify(exactly = 0) { knowledgeService.answerQuestion(any()) }
-        verify(exactly = 0) { slackMessageService.sendThreadMessage(any(), any(), any()) }
+        verify(exactly = 0) { outboxService.saveEvent(any(), any(), any()) }
     }
 
     @Test
-    fun `should not send message when threadTs is null`() {
+    fun `should not save event when threadTs is null`() {
         val event =
             SlackEvent(
                 type = "message",
@@ -97,12 +111,11 @@ class MessageEventHandlerTest {
 
         handler.handle(event)
 
-        verify(exactly = 0) { knowledgeService.answerQuestion(any()) }
-        verify(exactly = 0) { slackMessageService.sendThreadMessage(any(), any(), any()) }
+        verify(exactly = 0) { outboxService.saveEvent(any(), any(), any()) }
     }
 
     @Test
-    fun `should not send message when text is null`() {
+    fun `should not save event when text is null`() {
         val event =
             SlackEvent(
                 type = "message",
@@ -115,7 +128,6 @@ class MessageEventHandlerTest {
 
         handler.handle(event)
 
-        verify(exactly = 0) { knowledgeService.answerQuestion(any()) }
-        verify(exactly = 0) { slackMessageService.sendThreadMessage(any(), any(), any()) }
+        verify(exactly = 0) { outboxService.saveEvent(any(), any(), any()) }
     }
 }
