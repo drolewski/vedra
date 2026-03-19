@@ -27,9 +27,6 @@ interface KnowledgeRepository : JpaRepository<KnowledgeEntry, UUID> {
                      content,
                      metadata,
                      source,
-                     tenant_id,
-                     created_at,
-                     embedding,
                      1 - (embedding <=> CAST(:embedding AS vector)) AS score
             FROM     knowledge_entries
             WHERE    tenant_id  = :tenantId
@@ -47,10 +44,10 @@ interface KnowledgeRepository : JpaRepository<KnowledgeEntry, UUID> {
     ): List<SimilarityResultProjection>
 }
 
-interface SimilarityResultProjection {
-    val id: UUID
-    val content: String
-    val metadata: Map<String, String>
-    val source: String
-    val score: Double
-}
+data class SimilarityResultProjection(
+    val id: UUID,
+    val content: String,
+    val metadata: String?,
+    val source: String,
+    val score: Double,
+)

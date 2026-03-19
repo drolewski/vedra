@@ -1,6 +1,9 @@
 package io.vedra.domain.service
 
+import com.fasterxml.jackson.core.type.TypeReference
+import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.pgvector.PGvector
+import io.vedra.domain.prompt.Prompts
 import io.vedra.domain.repository.knowledge.KnowledgeRepository
 import io.vedra.infrastructure.chat.LLMPort
 import io.vedra.infrastructure.database.knowledge.KnowledgeEntry
@@ -15,54 +18,41 @@ class KnowledgeService(
     private val embeddingPort: EmbeddingPort,
     private val llmPort: LLMPort,
 ) {
+    private val objectMapper = jacksonObjectMapper()
+
     fun answerQuestion(question: String): String {
         val embedding = embeddingPort.embed(question)
+        val embeddingString = embedding.toArray().joinToString(",", "[", "]")
+
         val similarEntries =
             knowledgeRepository.findSimilarWithScore(
                 tenantId = TENANT_ID,
-                embedding = embedding.toString(),
+                embedding = embeddingString,
                 limit = 3,
                 minScore = 0.7,
             )
 
         val context =
             similarEntries
-                .map { it.metadata["answer"] ?: "" }
-                .filter { it.isNotBlank() }
-                .joinToString("\n---\n")
+                .mapNotNull { entry ->
+                    val metadata =
+                        entry.metadata?.let {
+                            objectMapper.readValue(it, object : TypeReference<Map<String, Any>>() {})
+                        } ?: emptyMap()
+                    metadata["answer"]?.toString()?.takeIf { it.isNotBlank() }
+                }.joinToString("\n---\n")
 
         if (context.isBlank()) {
-            val branch = "budowlanej"
-            val generateRandomResponse =
-                """
-                Jesteś asystentem AI odpowiedzialnym za knowledgebase w firmie z branży $branch.
-                Odpowiadaj TYLKO korzystając z faktów i wiedzy, którą posiadasz. Jeśli pytanie jest zbyt trudne powiedz, że nei wiesz.
-                Odpowiadaj w języku polskim. Jeżeli nie dajesz odpowiedzi to powiedz dlaczego.
-                """.trimIndent()
-
-            val userQuestion =
-                """
-                Pytanie: $question
-                """.trimIndent()
-            return llmPort.generate(generateRandomResponse, userQuestion) ?: "Nie udało się wygenerować odpowiedzi."
+            return llmPort.generate(
+                Prompts.General.system,
+                Prompts.General.userPrompt(question),
+            ) ?: "Nie udało się wygenerować odpowiedzi."
         }
 
-        val systemPrompt =
-            """
-            Jesteś asystentem AI. Odpowiadaj TYLKO na podstawie dostarczonego kontekstu.
-            Jeśli kontekst nie zawiera odpowiedzi na pytanie, powiedz że nie wiesz.
-            Odpowiadaj w języku polskim.
-            """.trimIndent()
-
-        val userPrompt =
-            """
-            Kontekst:
-            $context
-            
-            Pytanie: $question
-            """.trimIndent()
-
-        return llmPort.generate(systemPrompt, userPrompt) ?: "Nie udało się wygenerować odpowiedzi."
+        return llmPort.generate(
+            Prompts.KnowledgeBase.system(context),
+            Prompts.KnowledgeBase.userPrompt(context, question),
+        ) ?: "Nie udało się wygenerować odpowiedzi."
     }
 
     fun addKnowledge(

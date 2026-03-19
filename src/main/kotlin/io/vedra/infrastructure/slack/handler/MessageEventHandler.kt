@@ -19,7 +19,9 @@ class MessageEventHandler(
         val threadTs = event.threadTs ?: return
         val question = event.text ?: return
 
+        // TODO: Outbox pattern do obsługi odpowiedzi
         val answer = knowledgeService.answerQuestion(question)
+        // TODO: Formatowanie Decorator pattern
         slackMessageService.sendThreadMessage(channel, threadTs, answer)
     }
 }

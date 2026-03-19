@@ -26,8 +26,8 @@ spring:
       chat:
         options:
           model: llama3.2
-          temperature: 0.3
-          max-tokens: 500
+          temperature: 0.9
+          max-tokens: 700
     vectorstore:
       pgvector:
         index-type: HNSW
@@ -58,8 +58,6 @@ application:
       - Accept-Language
       - Accept
       - Authorization
-  multi-tenant:
-    enabled: true
 
 slack:
   bot-token: ${SLACK_BOT_TOKEN}
