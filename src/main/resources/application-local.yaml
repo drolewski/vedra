@@ -23,6 +23,11 @@ spring:
       embedding:
         options:
           model: nomic-embed-text
+      chat:
+        options:
+          model: llama3.2
+          temperature: 0.3
+          max-tokens: 500
     vectorstore:
       pgvector:
         index-type: HNSW

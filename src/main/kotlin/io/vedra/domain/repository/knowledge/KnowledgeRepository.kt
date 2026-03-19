@@ -43,14 +43,14 @@ interface KnowledgeRepository : JpaRepository<KnowledgeEntry, UUID> {
         tenantId:  UUID,
         embedding: String,
         limit:     Int = 5,
-        minScore:  Double = 0.7,
+        minScore:  Double = 0.9,
     ): List<SimilarityResultProjection>
 }
 
 interface SimilarityResultProjection {
     val id: UUID
     val content: String
-    val metadata: String
+    val metadata: Map<String, String>
     val source: String
     val score: Double
 }
