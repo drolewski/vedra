@@ -1,6 +1,5 @@
 # TODOS
 
-### DODAC READMY Z OPISEM JAK TO WGL URUCHAMIAC (BAZA, OLLAMA itp.)
 1. Poprawa procesu zbierania pytań/odpowiedzi 
  + normalizacja danych 
  + zaprojektowanie i poprawienie modelu opartego o vector search
