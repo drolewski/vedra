@@ -1,0 +1,22 @@
+meta {
+  name: Slack Events
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/api/v1/slack/events
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "challenge": "test"
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
