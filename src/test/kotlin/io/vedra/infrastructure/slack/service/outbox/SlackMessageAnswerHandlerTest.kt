@@ -3,6 +3,8 @@ package io.vedra.infrastructure.slack.service.outbox
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
+import io.vedra.domain.model.AnswerResult
+import io.vedra.domain.model.ResponseSource
 import io.vedra.domain.service.KnowledgeService
 import io.vedra.infrastructure.database.outbox.OutboxEvent
 import io.vedra.infrastructure.slack.service.SlackMessageService
@@ -28,7 +30,7 @@ class SlackMessageAnswerHandlerTest {
     }
 
     @Test
-    fun `should handle event by calling knowledgeService and sending message`() {
+    fun `should handle event by calling knowledgeService and sending formatted message`() {
         val event =
             OutboxEvent(
                 eventType = "SLACK_MESSAGE_ANSWER",
@@ -40,12 +42,91 @@ class SlackMessageAnswerHandlerTest {
                     ),
             )
 
-        every { knowledgeService.answerQuestion("Jakie jest prawo Ohma?") } returns "U = I * R"
+        every {
+            knowledgeService.answerQuestion("Jakie jest prawo Ohma?")
+        } returns
+            AnswerResult(
+                answer = "U = I * R",
+                source = ResponseSource.KNOWLEDGE_BASE,
+                confidence = 0.92,
+            )
 
         handler.handle(event)
 
         verify { knowledgeService.answerQuestion("Jakie jest prawo Ohma?") }
-        verify { slackMessageService.sendThreadMessage("C123", "1234567890.123456", "U = I * R") }
+        verify {
+            slackMessageService.sendThreadMessage(
+                "C123",
+                "1234567890.123456",
+                "U = I * R\n\n_Odpowiedź z bazy wiedzy._",
+            )
+        }
+    }
+
+    @Test
+    fun `should format AI answer with context label`() {
+        val event =
+            OutboxEvent(
+                eventType = "SLACK_MESSAGE_ANSWER",
+                payload =
+                    mapOf(
+                        "channel" to "C123",
+                        "threadTs" to "1234567890.123456",
+                        "question" to "Question?",
+                    ),
+            )
+
+        every {
+            knowledgeService.answerQuestion("Question?")
+        } returns
+            AnswerResult(
+                answer = "AI answer",
+                source = ResponseSource.AI_WITH_CONTEXT,
+                confidence = 0.72,
+            )
+
+        handler.handle(event)
+
+        verify {
+            slackMessageService.sendThreadMessage(
+                "C123",
+                "1234567890.123456",
+                "AI answer\n\n_Wygenerowane przez AI na podstawie bazy wiedzy._",
+            )
+        }
+    }
+
+    @Test
+    fun `should format general AI answer with no knowledge label`() {
+        val event =
+            OutboxEvent(
+                eventType = "SLACK_MESSAGE_ANSWER",
+                payload =
+                    mapOf(
+                        "channel" to "C123",
+                        "threadTs" to "1234567890.123456",
+                        "question" to "Question?",
+                    ),
+            )
+
+        every {
+            knowledgeService.answerQuestion("Question?")
+        } returns
+            AnswerResult(
+                answer = "General AI answer",
+                source = ResponseSource.AI_GENERAL,
+                confidence = 0.0,
+            )
+
+        handler.handle(event)
+
+        verify {
+            slackMessageService.sendThreadMessage(
+                "C123",
+                "1234567890.123456",
+                "General AI answer\n\n_Wygenerowane przez AI. Brak informacji w bazie wiedzy._",
+            )
+        }
     }
 
     @Test

@@ -16,8 +16,14 @@ class ChatController(
     fun chat(
         @RequestBody request: ChatRequest,
     ): ResponseEntity<ChatResponse> {
-        val response = knowledgeService.answerQuestion(request.question)
-        return ResponseEntity.ok(ChatResponse(response = response))
+        val result = knowledgeService.answerQuestion(request.question)
+        return ResponseEntity.ok(
+            ChatResponse(
+                answer = result.answer,
+                source = result.source.name,
+                confidence = result.confidence,
+            ),
+        )
     }
 
     @PostMapping("/knowledge")
@@ -25,7 +31,7 @@ class ChatController(
         @RequestBody request: ChatKnowledgeRequest,
     ): ResponseEntity<ChatResponse> {
         knowledgeService.addKnowledge(request.question, request.answer)
-        return ResponseEntity.ok(ChatResponse(response = "Dodano do bazy wiedzy"))
+        return ResponseEntity.ok(ChatResponse(answer = "Dodano do bazy wiedzy"))
     }
 }
 
@@ -39,5 +45,7 @@ data class ChatKnowledgeRequest(
 )
 
 data class ChatResponse(
-    val response: String,
+    val answer: String,
+    val source: String? = null,
+    val confidence: Double? = null,
 )

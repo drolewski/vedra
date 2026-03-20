@@ -8,24 +8,9 @@ import java.util.UUID
 interface KnowledgeRepository : JpaRepository<KnowledgeEntry, UUID> {
     @Query(
         value = """
-            SELECT * FROM knowledge_entries
-            WHERE  tenant_id = :tenantId
-            ORDER  BY embedding <=> CAST(:embedding AS vector)
-            LIMIT  :limit
-        """,
-        nativeQuery = true,
-    )
-    fun findSimilar(
-        tenantId: UUID,
-        embedding: String,
-        limit: Int = 5,
-    ): List<KnowledgeEntry>
-
-    @Query(
-        value = """
             SELECT   id,
                      content,
-                     metadata,
+                     answer,
                      source,
                      1 - (embedding <=> CAST(:embedding AS vector)) AS score
             FROM     knowledge_entries
@@ -47,7 +32,7 @@ interface KnowledgeRepository : JpaRepository<KnowledgeEntry, UUID> {
 data class SimilarityResultProjection(
     val id: UUID,
     val content: String,
-    val metadata: String?,
+    val answer: String?,
     val source: String,
     val score: Double,
 )

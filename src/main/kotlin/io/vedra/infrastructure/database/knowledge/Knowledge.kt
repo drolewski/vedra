@@ -37,11 +37,24 @@ data class KnowledgeEntry(
     val source: KnowledgeSourceType,
     @Column(nullable = false, columnDefinition = "TEXT")
     val content: String,
+    @Column(columnDefinition = "TEXT")
+    val answer: String? = null,
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(columnDefinition = "jsonb", nullable = false)
     val metadata: Map<String, Any> = emptyMap(),
     @Column(columnDefinition = "vector(768)", nullable = false)
     var embedding: PGvector,
+    @Enumerated(EnumType.STRING)
+    @Column(name = "answer_source", nullable = false, length = 20)
+    val answerSource: AnswerSource = AnswerSource.USER_VERIFIED,
+    @Column(name = "quality_score", nullable = false)
+    var qualityScore: Float = 0.5f,
+    @Column(name = "usage_count", nullable = false)
+    var usageCount: Int = 0,
+    @Column(name = "last_used_at")
+    var lastUsedAt: Instant? = null,
+    @Column(nullable = false)
+    var accepted: Boolean = true,
     @Column(name = "created_at", nullable = false, updatable = false)
     val createdAt: Instant = Instant.now(),
 ) {
@@ -52,7 +65,10 @@ data class KnowledgeEntry(
         embedding = PGvector(FloatArray(768)),
     )
 
-    fun answer(): String? = metadata["answer"] as? String
+    fun markUsed() {
+        usageCount++
+        lastUsedAt = Instant.now()
+    }
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
@@ -62,10 +78,18 @@ data class KnowledgeEntry(
 
     override fun hashCode(): Int = id?.hashCode() ?: 0
 
-    override fun toString(): String = "KnowledgeEntry(id=$id, tenantId=$tenantId, source=$source, createdAt=$createdAt)"
+    override fun toString(): String =
+        "KnowledgeEntry(id=$id, tenantId=$tenantId, source=$source, answerSource=$answerSource, createdAt=$createdAt)"
 }
 
 enum class KnowledgeSourceType {
-    DOCUMENT,
     FAQ,
+    DOCUMENT_TEXT,
+    DOCUMENT_IMAGE,
+    DOCUMENT_FILE,
+}
+
+enum class AnswerSource {
+    USER_VERIFIED,
+    AI_GENERATED,
 }
