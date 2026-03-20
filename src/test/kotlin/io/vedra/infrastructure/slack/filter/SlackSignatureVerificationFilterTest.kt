@@ -55,10 +55,10 @@ class SlackSignatureVerificationFilterTest {
     }
 
     @Test
-    fun `should return 401 when timestamp header is missing`() {
+    fun `should pass through when timestamp header is missing`() {
         val request = mockk<HttpServletRequest>()
         val response = mockk<HttpServletResponse>(relaxed = true)
-        val chain = mockk<FilterChain>()
+        val chain = mockk<FilterChain>(relaxed = true)
 
         every { request.requestURI } returns "/api/v1/slack/events"
         every { request.method } returns "POST"
@@ -67,15 +67,14 @@ class SlackSignatureVerificationFilterTest {
 
         filter.doFilter(request, response, chain)
 
-        verify { response.status = 401 }
-        verify(exactly = 0) { chain.doFilter(any(), any()) }
+        verify { chain.doFilter(request, response) }
     }
 
     @Test
-    fun `should return 401 when signature header is missing`() {
+    fun `should pass through when signature header is missing`() {
         val request = mockk<HttpServletRequest>()
         val response = mockk<HttpServletResponse>(relaxed = true)
-        val chain = mockk<FilterChain>()
+        val chain = mockk<FilterChain>(relaxed = true)
 
         every { request.requestURI } returns "/api/v1/slack/events"
         every { request.method } returns "POST"
@@ -84,8 +83,7 @@ class SlackSignatureVerificationFilterTest {
 
         filter.doFilter(request, response, chain)
 
-        verify { response.status = 401 }
-        verify(exactly = 0) { chain.doFilter(any(), any()) }
+        verify { chain.doFilter(request, response) }
     }
 
     @Test

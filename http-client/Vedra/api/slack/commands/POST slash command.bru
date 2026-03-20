@@ -1,0 +1,22 @@
+meta {
+  name: Slash Commands
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/api/v1/slack/commands
+  body: formUrlEncoded
+}
+
+body:form-urlencoded {
+  command: /vedra
+  text: create moj-projekt
+  channel_id: C123456
+  team_id: T123456
+  user_id: U123456
+}
+
+headers {
+  Content-Type: application/x-www-form-urlencoded
+}

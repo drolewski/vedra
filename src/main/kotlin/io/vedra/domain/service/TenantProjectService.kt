@@ -89,10 +89,10 @@ class TenantProjectService(
         name: String,
         description: String? = null,
         isGeneral: Boolean = false,
-    ): TenantProject {
+    ): CreateResult {
         val existing = tenantProjectRepository.findByTenantIdAndName(tenantId, name)
         if (existing != null) {
-            return existing
+            return CreateResult.AlreadyExists(existing.name)
         }
 
         val project =
@@ -102,13 +102,24 @@ class TenantProjectService(
                 description = description,
                 isGeneral = isGeneral,
             )
-        return tenantProjectRepository.save(project)
+        val saved = tenantProjectRepository.save(project)
+        return CreateResult.Success(saved)
     }
 
     enum class LinkResult {
         SUCCESS,
         PROJECT_NOT_FOUND,
         CANNOT_LINK_GENERAL,
+    }
+
+    sealed class CreateResult {
+        data class Success(
+            val project: TenantProject,
+        ) : CreateResult()
+
+        data class AlreadyExists(
+            val name: String,
+        ) : CreateResult()
     }
 
     data class ChannelStatus(

@@ -25,14 +25,17 @@ class SlackSlashCommandController(
         @RequestParam("channel_id") channelId: String,
         @RequestParam("team_id") teamId: String,
     ): ResponseEntity<Map<String, String>> {
-        logger.info { "Received slash command: $command $text in channel=$channelId" }
+        logger.info { "Received slash command: $command '$text' in channel=$channelId team=$teamId" }
 
         if (command != "/vedra") {
             return ResponseEntity.ok(mapOf("text" to "Nieznana komenda"))
         }
 
         val slackCommand = commandParser.parse(text, channelId, teamId)
+        logger.debug { "Parsed command: ${slackCommand::class.simpleName}" }
+
         val response = commandDispatcher.dispatch(slackCommand)
+        logger.info { "Command response: $response" }
 
         return ResponseEntity.ok(mapOf("response_type" to "ephemeral", "text" to response))
     }
