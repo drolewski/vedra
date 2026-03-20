@@ -4,9 +4,9 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
 import io.vedra.infrastructure.slack.filter.BotMessageFilter
-import io.vedra.infrastructure.slack.model.SlackEvent
 import io.vedra.infrastructure.slack.model.SlackEventFilter
 import io.vedra.infrastructure.slack.model.SlackEventHandler
+import io.vedra.infrastructure.slack.model.dto.SlackEventPayload
 import kotlin.test.Test
 
 class SlackEventProcessorTest {
@@ -14,8 +14,8 @@ class SlackEventProcessorTest {
     private val handler: SlackEventHandler = mockk(relaxed = true)
     private val processor = SlackEventProcessor(listOf(filter), listOf(handler))
 
-    private val userEvent =
-        SlackEvent(
+    private val userEventPayload =
+        SlackEventPayload(
             eventId = "Ev123",
             type = "message",
             subtype = null,
@@ -25,12 +25,14 @@ class SlackEventProcessorTest {
             threadTs = "1234567890.123456",
         )
 
+    private val userEvent = userEventPayload.toDomain()
+
     @Test
     fun `should process event when all filters pass`() {
         every { filter.shouldProcess(userEvent) } returns true
         every { handler.supports(userEvent) } returns true
 
-        processor.process(userEvent)
+        processor.process(userEventPayload)
 
         verify { handler.handle(userEvent) }
     }
@@ -39,7 +41,7 @@ class SlackEventProcessorTest {
     fun `should not process event when filter rejects`() {
         every { filter.shouldProcess(userEvent) } returns false
 
-        processor.process(userEvent)
+        processor.process(userEventPayload)
 
         verify(exactly = 0) { handler.handle(any()) }
     }
@@ -49,7 +51,7 @@ class SlackEventProcessorTest {
         every { filter.shouldProcess(userEvent) } returns true
         every { handler.supports(userEvent) } returns false
 
-        processor.process(userEvent)
+        processor.process(userEventPayload)
 
         verify(exactly = 0) { handler.handle(any()) }
     }
@@ -63,7 +65,7 @@ class SlackEventProcessorTest {
         every { secondFilter.shouldProcess(userEvent) } returns true
         every { handler.supports(userEvent) } returns true
 
-        multiFilterProcessor.process(userEvent)
+        multiFilterProcessor.process(userEventPayload)
 
         verify { handler.handle(userEvent) }
     }
@@ -76,7 +78,7 @@ class SlackEventProcessorTest {
         every { filter.shouldProcess(userEvent) } returns true
         every { secondFilter.shouldProcess(userEvent) } returns false
 
-        multiFilterProcessor.process(userEvent)
+        multiFilterProcessor.process(userEventPayload)
 
         verify(exactly = 0) { handler.handle(any()) }
     }
@@ -84,14 +86,13 @@ class SlackEventProcessorTest {
     @Test
     fun `should use first matching handler`() {
         val secondHandler: SlackEventHandler = mockk(relaxed = true)
-
         val multiHandlerProcessor = SlackEventProcessor(listOf(filter), listOf(handler, secondHandler))
 
         every { filter.shouldProcess(userEvent) } returns true
         every { handler.supports(userEvent) } returns false
         every { secondHandler.supports(userEvent) } returns true
 
-        multiHandlerProcessor.process(userEvent)
+        multiHandlerProcessor.process(userEventPayload)
 
         verify(exactly = 0) { handler.handle(any()) }
         verify { secondHandler.handle(userEvent) }
@@ -99,8 +100,8 @@ class SlackEventProcessorTest {
 
     @Test
     fun `should not process bot message due to filter`() {
-        val botEvent =
-            SlackEvent(
+        val botEventPayload =
+            SlackEventPayload(
                 eventId = "Ev123",
                 type = "message",
                 subtype = "bot_message",
@@ -110,11 +111,10 @@ class SlackEventProcessorTest {
                 threadTs = "1234567890.123456",
             )
 
-        val botFilter =
-            BotMessageFilter()
+        val botFilter = BotMessageFilter()
         val botProcessor = SlackEventProcessor(listOf(botFilter), listOf(handler))
 
-        botProcessor.process(botEvent)
+        botProcessor.process(botEventPayload)
 
         verify(exactly = 0) { handler.handle(any()) }
     }

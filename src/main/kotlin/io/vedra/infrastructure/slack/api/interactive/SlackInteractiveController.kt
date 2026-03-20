@@ -1,15 +1,20 @@
 package io.vedra.infrastructure.slack.api.interactive
 
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
+import io.github.oshai.kotlinlogging.KotlinLogging
 import io.vedra.infrastructure.outbox.service.OutboxService
+import io.vedra.infrastructure.slack.exception.SlackApiException
+import io.vedra.infrastructure.slack.exception.SlackPayloadException
+import io.vedra.infrastructure.slack.model.dto.SlackInteractionPayload
 import io.vedra.infrastructure.slack.service.SlackMessageService
-import io.vedra.infrastructure.slack.service.SlackMessageService.Companion.ACTION_NEGATIVE
-import io.vedra.infrastructure.slack.service.SlackMessageService.Companion.ACTION_POSITIVE
+import io.vedra.infrastructure.slack.service.outbox.SlackFeedbackHandler.Companion.EVENT_TYPE
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
+
+private val logger = KotlinLogging.logger {}
 
 @RestController
 class SlackInteractiveController(
@@ -22,53 +27,58 @@ class SlackInteractiveController(
     fun handleInteractive(
         @RequestParam payload: String,
     ): ResponseEntity<Any> {
-        val json = objectMapper.readValue(payload, Map::class.java) as Map<String, Any>
-
-        val actions = json["actions"] as? List<*> ?: return ResponseEntity.ok().build()
-        val action = actions.firstOrNull() as? Map<*, *> ?: return ResponseEntity.ok().build()
-
-        val actionId = action["action_id"] as? String ?: return ResponseEntity.ok().build()
-        val feedbackId = action["value"] as? String ?: return ResponseEntity.ok().build()
-
-        val user = json["user"] as? Map<*, *> ?: return ResponseEntity.ok().build()
-        val userId = user["id"] as? String ?: return ResponseEntity.ok().build()
-
-        val vote =
-            when (actionId) {
-                ACTION_POSITIVE -> "positive"
-                ACTION_NEGATIVE -> "negative"
-                else -> return ResponseEntity.ok().build()
+        val rawPayload =
+            try {
+                objectMapper.readValue(payload, Map::class.java) as Map<String, Any>
+            } catch (e: Exception) {
+                logger.warn(e) { "Failed to parse Slack interactive payload JSON" }
+                return ResponseEntity.ok().build()
             }
+
+        val interaction =
+            try {
+                SlackInteractionPayload.fromRawPayload(rawPayload)
+            } catch (e: SlackPayloadException) {
+                logger.warn(e) { "Invalid Slack interactive payload structure" }
+                return ResponseEntity.ok().build()
+            }
+
+        logger.info {
+            "Processing feedback interaction: feedbackId=${interaction.feedbackId} " +
+                "userId=${interaction.userId} vote=${interaction.vote}"
+        }
 
         outboxService.saveEvent(
             eventType = EVENT_TYPE,
-            aggregateId = "${feedbackId}_$userId",
+            aggregateId = "${interaction.feedbackId}_${interaction.userId}",
             payload =
                 mapOf(
-                    "feedbackId" to feedbackId,
-                    "userId" to userId,
-                    "vote" to vote,
+                    "feedbackId" to interaction.feedbackId,
+                    "userId" to interaction.userId,
+                    "vote" to interaction.vote,
                 ),
         )
 
-        try {
-            val message = json["message"] as? Map<*, *>
-            val channel =
-                (json["container"] as? Map<*, *>)?.get("channel_id") as? String
-                    ?: message?.get("channel") as? String
-            val messageTs = message?.get("ts") as? String
-            val originalBlocks = message?.get("blocks") as? List<*>
-
-            if (channel != null && messageTs != null && originalBlocks != null) {
-                slackMessageService.replaceFeedbackButtons(channel, messageTs, originalBlocks, vote)
-            }
-        } catch (_: Exception) {
+        if (interaction.hasMessageContext) {
+            updateMessageButtons(interaction)
         }
 
         return ResponseEntity.ok().build()
     }
 
-    companion object {
-        const val EVENT_TYPE = "SLACK_FEEDBACK"
+    private fun updateMessageButtons(interaction: SlackInteractionPayload) {
+        try {
+            slackMessageService.replaceFeedbackButtons(
+                channel = interaction.channelId!!,
+                messageTs = interaction.messageTs!!,
+                originalBlocks = interaction.originalBlocks!!,
+                vote = interaction.vote,
+            )
+        } catch (e: SlackApiException) {
+            logger.error(e) {
+                "Failed to update feedback buttons for message=${interaction.messageTs} " +
+                    "in channel=${interaction.channelId}"
+            }
+        }
     }
 }

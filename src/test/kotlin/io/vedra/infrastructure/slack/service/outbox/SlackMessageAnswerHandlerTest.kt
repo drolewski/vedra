@@ -8,6 +8,7 @@ import io.vedra.domain.model.ResponseSource
 import io.vedra.domain.service.FeedbackService
 import io.vedra.domain.service.KnowledgeService
 import io.vedra.infrastructure.database.outbox.OutboxEvent
+import io.vedra.infrastructure.slack.service.SlackMessageFormatter
 import io.vedra.infrastructure.slack.service.SlackMessageService
 import java.util.UUID
 import kotlin.test.Test
@@ -18,7 +19,8 @@ class SlackMessageAnswerHandlerTest {
     private val knowledgeService: KnowledgeService = mockk()
     private val slackMessageService: SlackMessageService = mockk(relaxed = true)
     private val feedbackService: FeedbackService = mockk(relaxed = true)
-    private val handler = SlackMessageAnswerHandler(knowledgeService, slackMessageService, feedbackService)
+    private val messageFormatter: SlackMessageFormatter = SlackMessageFormatter()
+    private val handler = SlackMessageAnswerHandler(knowledgeService, slackMessageService, feedbackService, messageFormatter)
 
     @Test
     fun `should support SLACK_MESSAGE_ANSWER event type`() {

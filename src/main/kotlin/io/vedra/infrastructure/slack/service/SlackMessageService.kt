@@ -1,31 +1,23 @@
 package io.vedra.infrastructure.slack.service
 
-import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
-import com.slack.api.bolt.App
-import com.slack.api.model.block.ActionsBlock
-import com.slack.api.model.block.SectionBlock
-import com.slack.api.model.block.composition.MarkdownTextObject
-import com.slack.api.model.block.composition.PlainTextObject
-import com.slack.api.model.block.element.ButtonElement
+import io.github.oshai.kotlinlogging.KotlinLogging
+import io.vedra.infrastructure.slack.port.SlackClientPort
 import org.springframework.stereotype.Service
+
+private val logger = KotlinLogging.logger {}
 
 @Service
 class SlackMessageService(
-    private val slackApp: App,
+    private val slackClient: SlackClientPort,
+    private val messageFormatter: SlackMessageFormatter,
 ) {
-    private val objectMapper = jacksonObjectMapper()
-
     fun sendThreadMessage(
         channel: String,
         threadTs: String,
         text: String,
     ) {
-        slackApp.client().chatPostMessage { req ->
-            req
-                .channel(channel)
-                .threadTs(threadTs)
-                .text(text)
-        }
+        logger.debug { "Sending thread message to channel=$channel threadTs=$threadTs" }
+        slackClient.postThreadMessage(channel, threadTs, text)
     }
 
     fun sendThreadMessageWithFeedback(
@@ -34,87 +26,20 @@ class SlackMessageService(
         text: String,
         feedbackId: String,
     ): String {
-        val response =
-            slackApp.client().chatPostMessage { req ->
-                req
-                    .channel(channel)
-                    .threadTs(threadTs)
-                    .text(text)
-                    .blocks(
-                        listOf(
-                            SectionBlock
-                                .builder()
-                                .text(MarkdownTextObject.builder().text(text).build())
-                                .build(),
-                            ActionsBlock
-                                .builder()
-                                .blockId(BLOCK_ACTIONS)
-                                .elements(
-                                    listOf(
-                                        ButtonElement
-                                            .builder()
-                                            .text(PlainTextObject.builder().text("Pomogło :+1:").build())
-                                            .actionId(ACTION_POSITIVE)
-                                            .value(feedbackId)
-                                            .style("primary")
-                                            .build(),
-                                        ButtonElement
-                                            .builder()
-                                            .text(PlainTextObject.builder().text("Nie pomogło :-1:").build())
-                                            .actionId(ACTION_NEGATIVE)
-                                            .value(feedbackId)
-                                            .style("danger")
-                                            .build(),
-                                    ),
-                                ).build(),
-                        ),
-                    )
-            }
-        return response.ts
+        logger.debug { "Sending thread message with feedback to channel=$channel threadTs=$threadTs feedbackId=$feedbackId" }
+        val blocks = messageFormatter.buildAnswerBlocks(text, feedbackId)
+        return slackClient.postThreadMessageWithBlocks(channel, threadTs, blocks, text)
     }
 
     fun replaceFeedbackButtons(
         channel: String,
         messageTs: String,
-        originalBlocks: List<*>,
+        originalBlocks: List<Map<String, Any>>,
         vote: String,
     ) {
-        val label =
-            when (vote) {
-                "positive" -> ":thumbsup: Pomogło"
-                "negative" -> ":thumbsdown: Nie pomogło"
-                else -> vote
-            }
-
-        val confirmationBlock =
-            mapOf(
-                "type" to "context",
-                "elements" to
-                    listOf(
-                        mapOf("type" to "mrkdwn", "text" to "_Oddano głos: $label._"),
-                    ),
-            )
-
-        val filteredBlocks =
-            (originalBlocks as List<Any>)
-                .filter { block ->
-                    val map = block as? Map<*, *>
-                    map?.get("block_id") != BLOCK_ACTIONS
-                } + confirmationBlock
-
-        val blocksJson = objectMapper.writeValueAsString(filteredBlocks)
-
-        slackApp.client().chatUpdate { req ->
-            req
-                .channel(channel)
-                .ts(messageTs)
-                .blocksAsString(blocksJson)
-        }
-    }
-
-    companion object {
-        const val ACTION_POSITIVE = "feedback_positive"
-        const val ACTION_NEGATIVE = "feedback_negative"
-        private const val BLOCK_ACTIONS = "feedback_actions"
+        logger.debug { "Replacing feedback buttons for message=$messageTs in channel=$channel vote=$vote" }
+        val updatedBlocks = messageFormatter.buildConfirmationBlocks(originalBlocks, vote)
+        @Suppress("UNCHECKED_CAST")
+        slackClient.updateMessage(channel, messageTs, updatedBlocks as List<Map<String, Any>>)
     }
 }
