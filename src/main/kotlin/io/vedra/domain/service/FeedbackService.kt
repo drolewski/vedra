@@ -35,9 +35,11 @@ class FeedbackService(
         feedbackId: String,
         userId: String,
         vote: String,
-    ) {
-        val mapping = feedbackMappingRepository.findById(feedbackId).orElse(null) ?: return
-        if (mapping.votes.containsKey(userId)) return
+    ): VoteResult {
+        val mapping = feedbackMappingRepository.findById(feedbackId).orElse(null) ?: return VoteResult.NOT_FOUND
+
+        val existingVote = mapping.votes[userId]
+        if (existingVote == vote) return VoteResult.NO_CHANGE
 
         mapping.votes = mapping.votes + (userId to vote)
         feedbackMappingRepository.save(mapping)
@@ -47,6 +49,15 @@ class FeedbackService(
             entry.qualityScore = calculateScore(mapping.votes)
             knowledgeRepository.save(entry)
         }
+
+        return if (existingVote != null) VoteResult.CHANGED else VoteResult.NEW
+    }
+
+    enum class VoteResult {
+        NEW,
+        CHANGED,
+        NO_CHANGE,
+        NOT_FOUND,
     }
 
     private fun calculateScore(votes: Map<String, String>): Float {
