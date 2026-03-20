@@ -4,6 +4,7 @@
 1. Copy `.env.example` to .env
 2. Set variables:
    1. SLACK_BOT_TOKEN - Install App Bot User OAuth Token 
+   2. SLACK_SIGNING_SECRET - Signing Secret from Slack App Basic Information
 
 # Docker
 1. Copy `template-docker-compose.yml` to `docker-compose.yml`
