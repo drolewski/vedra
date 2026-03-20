@@ -2,20 +2,25 @@ package io.vedra.infrastructure.slack.filter
 
 import jakarta.servlet.Filter
 import jakarta.servlet.FilterChain
+import jakarta.servlet.ReadListener
+import jakarta.servlet.ServletInputStream
 import jakarta.servlet.ServletRequest
 import jakarta.servlet.ServletResponse
 import jakarta.servlet.http.HttpServletRequest
+import jakarta.servlet.http.HttpServletRequestWrapper
 import jakarta.servlet.http.HttpServletResponse
-import org.springframework.beans.factory.annotation.Value
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Component
+import java.io.BufferedReader
+import java.io.ByteArrayInputStream
+import java.io.InputStreamReader
 import java.time.Instant
 import javax.crypto.Mac
 import javax.crypto.spec.SecretKeySpec
 
 @Component
 class SlackSignatureVerificationFilter(
-    @Value($$"${slack.signing-secret}") private val signingSecret: String,
+    private val signingSecret: String,
 ) : Filter {
     override fun doFilter(
         request: ServletRequest,
@@ -25,7 +30,7 @@ class SlackSignatureVerificationFilter(
         val httpRequest = request as HttpServletRequest
         val httpResponse = response as HttpServletResponse
 
-        if (httpRequest.requestURI != SLACK_EVENTS_ENDPOINT || httpRequest.method != SLACK_HTTP_VERB) {
+        if (!httpRequest.requestURI.startsWith(SLACK_PATH_PREFIX) || httpRequest.method != SLACK_HTTP_VERB) {
             chain.doFilter(request, response)
             return
         }
@@ -52,8 +57,7 @@ class SlackSignatureVerificationFilter(
             return
         }
 
-        val wrappedRequest = CachedBodyHttpServletRequest(httpRequest, body)
-        chain.doFilter(wrappedRequest, response)
+        chain.doFilter(CachedBodyRequest(httpRequest, body), response)
     }
 
     private fun isTimestampTooOld(timestamp: String): Boolean {
@@ -73,8 +77,28 @@ class SlackSignatureVerificationFilter(
         return hash.joinToString("") { "%02x".format(it) }
     }
 
+    private class CachedBodyRequest(
+        request: HttpServletRequest,
+        private val body: ByteArray,
+    ) : HttpServletRequestWrapper(request) {
+        override fun getInputStream(): ServletInputStream =
+            object : ServletInputStream() {
+                private val inputStream = ByteArrayInputStream(body)
+
+                override fun read(): Int = inputStream.read()
+
+                override fun isFinished(): Boolean = inputStream.available() == 0
+
+                override fun isReady(): Boolean = true
+
+                override fun setReadListener(listener: ReadListener?) {}
+            }
+
+        override fun getReader(): BufferedReader = BufferedReader(InputStreamReader(inputStream))
+    }
+
     companion object {
-        private const val SLACK_EVENTS_ENDPOINT = "/api/v1/slack/events"
+        private const val SLACK_PATH_PREFIX = "/api/v1/slack/"
         private const val SLACK_HTTP_VERB = "POST"
         private const val SLACK_SIGNING_VERSION = "v0"
         private const val SLACK_TIMESTAMP_REQUEST_HEADER = "X-Slack-Request-Timestamp"

@@ -8,6 +8,7 @@ import org.springframework.context.annotation.Configuration
 @Configuration
 class SlackConfig(
     @Value($$"${slack.bot-token}") private val botToken: String,
+    @Value($$"${slack.signing-secret}") private val signingSecret: String,
 ) {
     @Bean
     fun slackApp(): App {
@@ -15,4 +16,7 @@ class SlackConfig(
         app.client().authTest { it.token(botToken) }
         return app
     }
+
+    @Bean
+    fun slackSigningSecret(): String = signingSecret
 }

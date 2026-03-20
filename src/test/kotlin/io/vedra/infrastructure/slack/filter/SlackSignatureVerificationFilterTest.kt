@@ -27,7 +27,7 @@ class SlackSignatureVerificationFilterTest {
     }
 
     @Test
-    fun `should pass through non-slack events endpoint`() {
+    fun `should pass through non-slack endpoint`() {
         val request = mockk<HttpServletRequest>()
         val response = mockk<HttpServletResponse>(relaxed = true)
         val chain = mockk<FilterChain>(relaxed = true)
