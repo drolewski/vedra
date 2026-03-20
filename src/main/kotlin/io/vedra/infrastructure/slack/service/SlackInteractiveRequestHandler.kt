@@ -17,19 +17,26 @@ class SlackInteractiveRequestHandler(
     private val slackMessageService: SlackMessageService,
 ) {
     fun handle(payload: Map<String, Any>): ResponseEntity<Any> {
-        val interaction =
-            try {
-                SlackInteractionPayload.fromRawPayload(payload)
-            } catch (e: SlackPayloadException) {
-                logger.warn(e) { "Invalid Slack interactive payload structure" }
-                return ResponseEntity.ok().build()
-            }
+        val interaction = parsePayload(payload) ?: return ResponseEntity.ok().build()
+        saveFeedbackEvent(interaction)
+        updateMessageButtonsIfNeeded(interaction)
+        return ResponseEntity.ok().build()
+    }
 
-        logger.info {
-            "Processing feedback interaction: feedbackId=${interaction.feedbackId} " +
-                "userId=${interaction.userId} vote=${interaction.vote}"
+    private fun parsePayload(payload: Map<String, Any>): SlackInteractionPayload? =
+        try {
+            SlackInteractionPayload.fromRawPayload(payload).also {
+                logger.info {
+                    "Processing feedback interaction: feedbackId=${it.feedbackId} " +
+                        "userId=${it.userId} vote=${it.vote}"
+                }
+            }
+        } catch (e: SlackPayloadException) {
+            logger.warn(e) { "Invalid Slack interactive payload structure" }
+            null
         }
 
+    private fun saveFeedbackEvent(interaction: SlackInteractionPayload) {
         outboxService.saveEvent(
             eventType = EVENT_TYPE,
             aggregateId = "${interaction.feedbackId}_${interaction.userId}",
@@ -40,12 +47,11 @@ class SlackInteractiveRequestHandler(
                     "vote" to interaction.vote,
                 ),
         )
+    }
 
-        if (interaction.hasMessageContext) {
-            updateMessageButtons(interaction)
-        }
-
-        return ResponseEntity.ok().build()
+    private fun updateMessageButtonsIfNeeded(interaction: SlackInteractionPayload) {
+        if (!interaction.hasMessageContext) return
+        updateMessageButtons(interaction)
     }
 
     private fun updateMessageButtons(interaction: SlackInteractionPayload) {
