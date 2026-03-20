@@ -16,7 +16,7 @@ class SlackCommandParser {
     fun parse(
         text: String,
         channelId: String,
-        teamId: String,
+        workspaceId: String,
     ): Any {
         val parts = text.trim().split("\\s+".toRegex(), limit = 2)
         val action = parts.getOrNull(0)?.lowercase()
@@ -25,10 +25,10 @@ class SlackCommandParser {
         logger.debug { "Parsing command: action=$action argument='$argument'" }
 
         return when (action) {
-            "create" -> CreateProjectCommand(teamId, channelId, argument)
-            "link" -> LinkProjectCommand(teamId, channelId, argument)
+            "create" -> CreateProjectCommand(workspaceId, channelId, argument)
+            "link" -> LinkProjectCommand(workspaceId, channelId, argument)
             "unlink" -> UnlinkProjectCommand(channelId)
-            "list" -> ListProjectsCommand(teamId)
+            "list" -> ListProjectsCommand(workspaceId)
             "status" -> StatusCommand(channelId)
             else -> HelpCommand()
         }

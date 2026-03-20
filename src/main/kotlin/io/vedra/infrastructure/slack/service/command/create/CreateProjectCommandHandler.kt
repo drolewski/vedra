@@ -19,7 +19,7 @@ class CreateProjectCommandHandler(
             return "Podaj nazwę projektu: `/vedra create <nazwa-projektu>`"
         }
 
-        val tenantId = UUID.nameUUIDFromBytes(command.teamId.toByteArray())
+        val tenantId = UUID.nameUUIDFromBytes(command.workspaceId.toByteArray())
         logger.debug { "Creating project '${command.projectName}' for tenant=$tenantId" }
 
         return try {

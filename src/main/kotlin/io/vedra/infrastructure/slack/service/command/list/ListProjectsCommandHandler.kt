@@ -12,7 +12,7 @@ class ListProjectsCommandHandler(
     override fun supports(command: Any): Boolean = command is ListProjectsCommand
 
     override fun handle(command: ListProjectsCommand): String {
-        val tenantId = UUID.nameUUIDFromBytes(command.teamId.toByteArray())
+        val tenantId = UUID.nameUUIDFromBytes(command.workspaceId.toByteArray())
         val projects = tenantProjectService.listProjects(tenantId)
 
         if (projects.isEmpty()) {

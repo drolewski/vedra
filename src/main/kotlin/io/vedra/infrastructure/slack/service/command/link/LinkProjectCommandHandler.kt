@@ -13,7 +13,7 @@ class LinkProjectCommandHandler(
     override fun supports(command: Any): Boolean = command is LinkProjectCommand
 
     override fun handle(command: LinkProjectCommand): String {
-        val tenantId = UUID.nameUUIDFromBytes(command.teamId.toByteArray())
+        val tenantId = UUID.nameUUIDFromBytes(command.workspaceId.toByteArray())
 
         return when (tenantProjectService.linkChannelToProject(tenantId, command.channelId, command.projectName)) {
             LinkResult.SUCCESS -> "Kanał powiązany z projektem *${command.projectName}*"
