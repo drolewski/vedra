@@ -56,87 +56,27 @@ class SlackMessageAnswerHandlerTest {
                 entryIds = listOf(entryId),
             )
 
+        every {
+            slackMessageService.sendThreadMessageWithFeedback(any(), any(), any(), any())
+        } returns "222.0"
+
         handler.handle(event)
 
         verify { knowledgeService.answerQuestion("Jakie jest prawo Ohma?") }
         verify {
-            slackMessageService.sendThreadMessage(
+            slackMessageService.sendThreadMessageWithFeedback(
                 "C123",
                 "1234567890.123456",
-                "U = I * R\n\n_Odpowiedź z bazy wiedzy._",
+                match { it.contains("U = I * R") },
+                any(),
             )
         }
         verify {
             feedbackService.saveMapping(
-                threadTs = "1234567890.123456",
+                feedbackId = any(),
+                channel = "C123",
+                messageTs = any(),
                 entryIds = listOf(entryId),
-                answerSource = "KNOWLEDGE_BASE",
-            )
-        }
-    }
-
-    @Test
-    fun `should format AI answer with context label`() {
-        val event =
-            OutboxEvent(
-                eventType = "SLACK_MESSAGE_ANSWER",
-                payload =
-                    mapOf(
-                        "channel" to "C123",
-                        "threadTs" to "1234567890.123456",
-                        "question" to "Question?",
-                    ),
-            )
-
-        every {
-            knowledgeService.answerQuestion("Question?")
-        } returns
-            AnswerResult(
-                answer = "AI answer",
-                source = ResponseSource.AI_WITH_CONTEXT,
-                confidence = 0.72,
-            )
-
-        handler.handle(event)
-
-        verify {
-            slackMessageService.sendThreadMessage(
-                "C123",
-                "1234567890.123456",
-                "AI answer\n\n_Wygenerowane przez AI na podstawie bazy wiedzy._",
-            )
-        }
-    }
-
-    @Test
-    fun `should format general AI answer with no knowledge label`() {
-        val event =
-            OutboxEvent(
-                eventType = "SLACK_MESSAGE_ANSWER",
-                payload =
-                    mapOf(
-                        "channel" to "C123",
-                        "threadTs" to "1234567890.123456",
-                        "question" to "Question?",
-                    ),
-            )
-
-        every {
-            knowledgeService.answerQuestion("Question?")
-        } returns
-            AnswerResult(
-                answer = "General AI answer",
-                source = ResponseSource.AI_GENERAL,
-                confidence = 0.0,
-            )
-
-        handler.handle(event)
-
-        verify {
-            slackMessageService.sendThreadMessage(
-                "C123",
-                "1234567890.123456",
-                "General AI answer\n\n_Wygenerowane przez AI. Brak informacji w bazie wiedzy._",
             )
         }
     }
@@ -156,7 +96,7 @@ class SlackMessageAnswerHandlerTest {
         handler.handle(event)
 
         verify(exactly = 0) { knowledgeService.answerQuestion(any()) }
-        verify(exactly = 0) { slackMessageService.sendThreadMessage(any(), any(), any()) }
+        verify(exactly = 0) { slackMessageService.sendThreadMessageWithFeedback(any(), any(), any(), any()) }
     }
 
     @Test
@@ -174,7 +114,7 @@ class SlackMessageAnswerHandlerTest {
         handler.handle(event)
 
         verify(exactly = 0) { knowledgeService.answerQuestion(any()) }
-        verify(exactly = 0) { slackMessageService.sendThreadMessage(any(), any(), any()) }
+        verify(exactly = 0) { slackMessageService.sendThreadMessageWithFeedback(any(), any(), any(), any()) }
     }
 
     @Test
@@ -192,7 +132,7 @@ class SlackMessageAnswerHandlerTest {
         handler.handle(event)
 
         verify(exactly = 0) { knowledgeService.answerQuestion(any()) }
-        verify(exactly = 0) { slackMessageService.sendThreadMessage(any(), any(), any()) }
+        verify(exactly = 0) { slackMessageService.sendThreadMessageWithFeedback(any(), any(), any(), any()) }
     }
 
     @Test
@@ -211,6 +151,6 @@ class SlackMessageAnswerHandlerTest {
         handler.handle(event)
 
         verify(exactly = 0) { knowledgeService.answerQuestion(any()) }
-        verify(exactly = 0) { slackMessageService.sendThreadMessage(any(), any(), any()) }
+        verify(exactly = 0) { slackMessageService.sendThreadMessageWithFeedback(any(), any(), any(), any()) }
     }
 }

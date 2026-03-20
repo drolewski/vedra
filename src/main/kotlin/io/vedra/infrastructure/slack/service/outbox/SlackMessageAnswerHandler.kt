@@ -8,6 +8,7 @@ import io.vedra.infrastructure.database.outbox.OutboxEvent
 import io.vedra.infrastructure.outbox.handler.OutboxEventHandler
 import io.vedra.infrastructure.slack.service.SlackMessageService
 import org.springframework.stereotype.Component
+import java.util.UUID
 
 @Component
 class SlackMessageAnswerHandler(
@@ -15,7 +16,7 @@ class SlackMessageAnswerHandler(
     private val slackMessageService: SlackMessageService,
     private val feedbackService: FeedbackService,
 ) : OutboxEventHandler {
-    override fun supports(eventType: String): Boolean = eventType == "SLACK_MESSAGE_ANSWER"
+    override fun supports(eventType: String): Boolean = eventType == EVENT_TYPE
 
     override fun handle(event: OutboxEvent) {
         val channel = event.payload["channel"] as? String ?: return
@@ -23,13 +24,21 @@ class SlackMessageAnswerHandler(
         val question = event.payload["question"] as? String ?: return
 
         val result = knowledgeService.answerQuestion(question)
+        val feedbackId = UUID.randomUUID().toString()
         val message = formatMessage(result)
-        slackMessageService.sendThreadMessage(channel, threadTs, message)
+
+        slackMessageService.sendThreadMessageWithFeedback(
+            channel = channel,
+            threadTs = threadTs,
+            text = message,
+            feedbackId = feedbackId,
+        )
 
         feedbackService.saveMapping(
-            threadTs = threadTs,
+            feedbackId = feedbackId,
+            channel = channel,
+            messageTs = feedbackId,
             entryIds = result.entryIds,
-            answerSource = result.source.name,
         )
     }
 

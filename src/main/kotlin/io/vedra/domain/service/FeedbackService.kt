@@ -3,7 +3,6 @@ package io.vedra.domain.service
 import io.vedra.domain.repository.feedback.FeedbackMappingRepository
 import io.vedra.domain.repository.knowledge.KnowledgeRepository
 import io.vedra.infrastructure.database.feedback.FeedbackMapping
-import io.vedra.infrastructure.database.knowledge.AnswerSource
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.util.UUID
@@ -15,42 +14,53 @@ class FeedbackService(
 ) {
     @Transactional
     fun saveMapping(
-        threadTs: String,
+        feedbackId: String,
+        channel: String,
+        messageTs: String,
         entryIds: List<UUID>,
-        answerSource: String,
     ) {
         if (entryIds.isEmpty()) return
-        val mapping = FeedbackMapping(threadTs = threadTs, entryIds = entryIds, answerSource = answerSource)
+        val mapping =
+            FeedbackMapping(
+                id = feedbackId,
+                channel = channel,
+                messageTs = messageTs,
+                entryIds = entryIds.map { it.toString() },
+            )
         feedbackMappingRepository.save(mapping)
     }
 
     @Transactional
-    fun applyPositiveFeedback(threadTs: String) {
-        val mapping = feedbackMappingRepository.findById(threadTs).orElse(null) ?: return
-        val entries = knowledgeRepository.findByIds(mapping.entryIds)
+    fun applyVote(
+        feedbackId: String,
+        userId: String,
+        vote: String,
+    ) {
+        val mapping = feedbackMappingRepository.findById(feedbackId).orElse(null) ?: return
+        if (mapping.votes.containsKey(userId)) return
 
+        mapping.votes = mapping.votes + (userId to vote)
+        feedbackMappingRepository.save(mapping)
+
+        val entries = knowledgeRepository.findByIds(mapping.entryIds.map { UUID.fromString(it) })
         entries.forEach { entry ->
-            entry.qualityScore = (entry.qualityScore + POSITIVE_DELTA).coerceAtMost(1.0f)
-            if (entry.answerSource == AnswerSource.AI_GENERATED && !entry.accepted) {
-                entry.accepted = true
-            }
+            entry.qualityScore = calculateScore(mapping.votes)
             knowledgeRepository.save(entry)
         }
     }
 
-    @Transactional
-    fun applyNegativeFeedback(threadTs: String) {
-        val mapping = feedbackMappingRepository.findById(threadTs).orElse(null) ?: return
-        val entries = knowledgeRepository.findByIds(mapping.entryIds)
-
-        entries.forEach { entry ->
-            entry.qualityScore = (entry.qualityScore + NEGATIVE_DELTA).coerceAtLeast(0.0f)
-            knowledgeRepository.save(entry)
-        }
+    private fun calculateScore(votes: Map<String, String>): Float {
+        val total = votes.size
+        if (total == 0) return PRIOR.toFloat()
+        val positives = votes.count { it.value == "positive" }
+        val netVotes = positives - (total - positives)
+        return ((CONFIDENCE * PRIOR + netVotes) / (CONFIDENCE + total))
+            .coerceIn(0.0, 1.0)
+            .toFloat()
     }
 
     companion object {
-        private const val POSITIVE_DELTA = 0.1f
-        private const val NEGATIVE_DELTA = -0.2f
+        private const val CONFIDENCE = 10.0
+        private const val PRIOR = 0.5
     }
 }

@@ -7,25 +7,33 @@ import jakarta.persistence.Table
 import org.hibernate.annotations.JdbcTypeCode
 import org.hibernate.type.SqlTypes
 import java.time.Instant
-import java.util.UUID
 
 @Entity
 @Table(name = "feedback_mappings")
 data class FeedbackMapping(
     @Id
-    @Column(name = "thread_ts", nullable = false, length = 50)
-    val threadTs: String,
+    val id: String,
+    @Column(nullable = false, length = 50)
+    val channel: String,
+    @Column(name = "message_ts", nullable = false, length = 50)
+    val messageTs: String,
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "entry_ids", columnDefinition = "jsonb", nullable = false)
-    val entryIds: List<UUID>,
-    @Column(name = "answer_source", nullable = false, length = 20)
-    val answerSource: String,
+    val entryIds: List<String>,
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(columnDefinition = "jsonb", nullable = false)
+    var votes: Map<String, String> = emptyMap(),
     @Column(name = "created_at", nullable = false, updatable = false)
     val createdAt: Instant = Instant.now(),
 ) {
     constructor() : this(
-        threadTs = "",
+        id = "",
+        channel = "",
+        messageTs = "",
         entryIds = emptyList(),
-        answerSource = "",
     )
+
+    val positiveCount: Int get() = votes.count { it.value == "positive" }
+    val negativeCount: Int get() = votes.count { it.value == "negative" }
+    val totalVotes: Int get() = votes.size
 }
