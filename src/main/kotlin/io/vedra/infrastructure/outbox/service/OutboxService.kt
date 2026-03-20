@@ -3,6 +3,7 @@ package io.vedra.infrastructure.outbox.service
 import io.vedra.infrastructure.database.outbox.OutboxEvent
 import io.vedra.infrastructure.database.outbox.OutboxStatus
 import io.vedra.infrastructure.outbox.repository.OutboxEventRepository
+import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.Instant
@@ -35,7 +36,15 @@ class OutboxService(
                 payload = payload,
             )
 
-        return outboxEventRepository.save(event)
+        return try {
+            outboxEventRepository.save(event)
+        } catch (e: DataIntegrityViolationException) {
+            aggregateId?.let {
+                outboxEventRepository
+                    .findByAggregateIdAndStatus(it, OutboxStatus.PENDING)
+                    .firstOrNull()
+            } ?: throw e
+        }
     }
 
     @Transactional(readOnly = true)

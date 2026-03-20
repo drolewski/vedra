@@ -20,7 +20,7 @@ class MessageEventHandler(
 
         outboxService.saveEvent(
             eventType = SlackMessageAnswerHandler.EVENT_TYPE,
-            aggregateId = threadTs,
+            aggregateId = event.eventId,
             payload =
                 mapOf(
                     "channel" to channel,

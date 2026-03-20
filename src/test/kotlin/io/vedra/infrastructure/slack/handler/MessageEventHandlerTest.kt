@@ -18,6 +18,7 @@ class MessageEventHandlerTest {
     fun `should support message event type`() {
         val event =
             SlackEvent(
+                eventId = "Ev123",
                 type = "message",
                 subtype = null,
                 botId = null,
@@ -33,6 +34,7 @@ class MessageEventHandlerTest {
     fun `should not support non-message event type`() {
         val event =
             SlackEvent(
+                eventId = "Ev123",
                 type = "reaction_added",
                 subtype = null,
                 botId = null,
@@ -48,6 +50,7 @@ class MessageEventHandlerTest {
     fun `should save event to outbox`() {
         val event =
             SlackEvent(
+                eventId = "Ev123",
                 type = "message",
                 subtype = null,
                 botId = null,
@@ -59,7 +62,7 @@ class MessageEventHandlerTest {
         every {
             outboxService.saveEvent(
                 eventType = "SLACK_MESSAGE_ANSWER",
-                aggregateId = "1234567890.123456",
+                aggregateId = "Ev123",
                 payload = any(),
             )
         } returns OutboxEvent(eventType = "SLACK_MESSAGE_ANSWER", payload = emptyMap())
@@ -69,7 +72,7 @@ class MessageEventHandlerTest {
         verify {
             outboxService.saveEvent(
                 eventType = "SLACK_MESSAGE_ANSWER",
-                aggregateId = "1234567890.123456",
+                aggregateId = "Ev123",
                 payload =
                     match {
                         it["channel"] == "C456" &&
@@ -84,6 +87,7 @@ class MessageEventHandlerTest {
     fun `should not save event when channel is null`() {
         val event =
             SlackEvent(
+                eventId = "Ev123",
                 type = "message",
                 subtype = null,
                 botId = null,
@@ -101,6 +105,7 @@ class MessageEventHandlerTest {
     fun `should not save event when threadTs is null`() {
         val event =
             SlackEvent(
+                eventId = "Ev123",
                 type = "message",
                 subtype = null,
                 botId = null,
@@ -118,6 +123,7 @@ class MessageEventHandlerTest {
     fun `should not save event when text is null`() {
         val event =
             SlackEvent(
+                eventId = "Ev123",
                 type = "message",
                 subtype = null,
                 botId = null,

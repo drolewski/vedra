@@ -14,6 +14,7 @@ class SlackEventRequestHandlerTest {
     fun `should process event from body`() {
         val body =
             mapOf(
+                "event_id" to "Ev123",
                 "event" to
                     mapOf(
                         "type" to "message",
@@ -29,6 +30,7 @@ class SlackEventRequestHandlerTest {
         verify {
             eventProcessor.process(
                 SlackEvent(
+                    eventId = "Ev123",
                     type = "message",
                     subtype = null,
                     botId = null,
@@ -80,6 +82,7 @@ class SlackEventRequestHandlerTest {
         verify {
             eventProcessor.process(
                 SlackEvent(
+                    eventId = null,
                     type = "message",
                     subtype = "bot_message",
                     botId = "B123",

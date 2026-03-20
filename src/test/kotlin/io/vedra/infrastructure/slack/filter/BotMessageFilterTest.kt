@@ -12,6 +12,7 @@ class BotMessageFilterTest {
     fun `should allow processing user message`() {
         val event =
             SlackEvent(
+                eventId = null,
                 type = "message",
                 subtype = null,
                 botId = null,
@@ -27,6 +28,7 @@ class BotMessageFilterTest {
     fun `should reject bot message with subtype`() {
         val event =
             SlackEvent(
+                eventId = null,
                 type = "message",
                 subtype = "bot_message",
                 botId = null,
@@ -42,6 +44,7 @@ class BotMessageFilterTest {
     fun `should reject bot message with botId`() {
         val event =
             SlackEvent(
+                eventId = null,
                 type = "message",
                 subtype = null,
                 botId = "B123",
@@ -57,6 +60,7 @@ class BotMessageFilterTest {
     fun `should reject bot message with both subtype and botId`() {
         val event =
             SlackEvent(
+                eventId = null,
                 type = "message",
                 subtype = "bot_message",
                 botId = "B123",

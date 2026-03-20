@@ -6,6 +6,7 @@ import io.mockk.verify
 import io.vedra.infrastructure.database.outbox.OutboxEvent
 import io.vedra.infrastructure.database.outbox.OutboxStatus
 import io.vedra.infrastructure.outbox.repository.OutboxEventRepository
+import org.springframework.dao.DataIntegrityViolationException
 import java.time.Instant
 import java.util.UUID
 import kotlin.test.Test
@@ -131,5 +132,28 @@ class OutboxServiceTest {
 
         assertEquals(5, result)
         verify { outboxEventRepository.deleteCompletedOlderThan(olderThan) }
+    }
+
+    @Test
+    fun `saveEvent should return existing event when unique constraint violated`() {
+        val aggregateId = "agg-123"
+        val existingEvent =
+            OutboxEvent(
+                id = UUID.randomUUID(),
+                eventType = "TEST_EVENT",
+                aggregateId = aggregateId,
+                payload = mapOf("existing" to "data"),
+            )
+
+        every { outboxEventRepository.findByAggregateIdAndStatus(aggregateId, OutboxStatus.PENDING) } returnsMany
+            listOf(
+                emptyList(),
+                listOf(existingEvent),
+            )
+        every { outboxEventRepository.save<OutboxEvent>(any()) } throws DataIntegrityViolationException("duplicate key")
+
+        val result = outboxService.saveEvent("TEST_EVENT", aggregateId, mapOf("key" to "value"))
+
+        assertSame(existingEvent, result)
     }
 }

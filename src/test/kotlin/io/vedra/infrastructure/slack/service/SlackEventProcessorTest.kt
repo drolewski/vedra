@@ -16,6 +16,7 @@ class SlackEventProcessorTest {
 
     private val userEvent =
         SlackEvent(
+            eventId = "Ev123",
             type = "message",
             subtype = null,
             botId = null,
@@ -100,6 +101,7 @@ class SlackEventProcessorTest {
     fun `should not process bot message due to filter`() {
         val botEvent =
             SlackEvent(
+                eventId = "Ev123",
                 type = "message",
                 subtype = "bot_message",
                 botId = null,

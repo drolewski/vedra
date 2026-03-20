@@ -16,16 +16,33 @@ class SlackEventTest {
                 "bot_id" to "B123",
                 "text" to "hello",
                 "channel" to "C456",
+                "thread_ts" to "1234567890.000000",
                 "ts" to "1234567890.123456",
             )
 
-        val event = SlackEvent.fromRawPayload(payload)
+        val event = SlackEvent.fromRawPayload(payload, "Ev123")
 
+        assertEquals("Ev123", event.eventId)
         assertEquals("message", event.type)
         assertEquals("bot_message", event.subtype)
         assertEquals("B123", event.botId)
         assertEquals("hello", event.text)
         assertEquals("C456", event.channel)
+        assertEquals("1234567890.000000", event.threadTs)
+    }
+
+    @Test
+    fun `should fallback to ts when thread_ts is missing`() {
+        val payload: Map<String, Any> =
+            mapOf(
+                "type" to "message",
+                "text" to "hello",
+                "channel" to "C456",
+                "ts" to "1234567890.123456",
+            )
+
+        val event = SlackEvent.fromRawPayload(payload)
+
         assertEquals("1234567890.123456", event.threadTs)
     }
 
@@ -63,6 +80,7 @@ class SlackEventTest {
     fun `isBotMessage should return true when subtype is bot_message`() {
         val event =
             SlackEvent(
+                eventId = null,
                 type = "message",
                 subtype = "bot_message",
                 botId = null,
@@ -78,6 +96,7 @@ class SlackEventTest {
     fun `isBotMessage should return true when botId is present`() {
         val event =
             SlackEvent(
+                eventId = null,
                 type = "message",
                 subtype = null,
                 botId = "B123",
@@ -93,6 +112,7 @@ class SlackEventTest {
     fun `isBotMessage should return false for regular user message`() {
         val event =
             SlackEvent(
+                eventId = null,
                 type = "message",
                 subtype = null,
                 botId = null,
