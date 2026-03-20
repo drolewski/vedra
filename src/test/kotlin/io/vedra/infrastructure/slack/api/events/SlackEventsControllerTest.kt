@@ -2,13 +2,15 @@ package io.vedra.infrastructure.slack.api.events
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
+import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
-import io.vedra.infrastructure.slack.model.SlackEvent
-import io.vedra.infrastructure.slack.service.SlackEventProcessor
+import io.vedra.infrastructure.slack.service.SlackChallengeHandler
+import io.vedra.infrastructure.slack.service.SlackEventRequestHandler
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.http.MediaType
+import org.springframework.http.ResponseEntity
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.content
@@ -17,18 +19,22 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders
 
 class SlackEventsControllerTest {
     private lateinit var mockMvc: MockMvc
-    private lateinit var eventProcessor: SlackEventProcessor
+    private lateinit var challengeHandler: SlackChallengeHandler
+    private lateinit var eventRequestHandler: SlackEventRequestHandler
     private val objectMapper: ObjectMapper = jacksonObjectMapper()
 
     @BeforeEach
     fun setUp() {
-        eventProcessor = mockk(relaxed = true)
-        val controller = SlackEventsController(eventProcessor)
+        challengeHandler = mockk(relaxed = true)
+        eventRequestHandler = mockk(relaxed = true)
+        every { challengeHandler.handle(any()) } returns null
+        every { eventRequestHandler.handle(any()) } returns ResponseEntity.ok().build()
+        val controller = SlackEventsController(challengeHandler, eventRequestHandler)
         mockMvc = MockMvcBuilders.standaloneSetup(controller).build()
     }
 
     @Test
-    fun `should process user message event`() {
+    fun `should delegate to eventRequestHandler when no challenge`() {
         val payload =
             mapOf(
                 "event" to
@@ -47,58 +53,12 @@ class SlackEventsControllerTest {
                     .content(objectMapper.writeValueAsString(payload)),
             ).andExpect(status().isOk)
 
-        verify {
-            eventProcessor.process(
-                SlackEvent(
-                    type = "message",
-                    subtype = null,
-                    botId = null,
-                    text = "hello",
-                    channel = "C456",
-                    threadTs = "1234567890.123456",
-                ),
-            )
-        }
+        verify { challengeHandler.handle(any()) }
+        verify { eventRequestHandler.handle(any()) }
     }
 
     @Test
-    fun `should process bot message event and let processor decide`() {
-        val payload =
-            mapOf(
-                "event" to
-                    mapOf(
-                        "type" to "message",
-                        "subtype" to "bot_message",
-                        "bot_id" to "B123",
-                        "text" to "hello",
-                        "channel" to "C456",
-                        "ts" to "1234567890.123456",
-                    ),
-            )
-
-        mockMvc
-            .perform(
-                post("/api/v1/slack/events")
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content(objectMapper.writeValueAsString(payload)),
-            ).andExpect(status().isOk)
-
-        verify {
-            eventProcessor.process(
-                SlackEvent(
-                    type = "message",
-                    subtype = "bot_message",
-                    botId = "B123",
-                    text = "hello",
-                    channel = "C456",
-                    threadTs = "1234567890.123456",
-                ),
-            )
-        }
-    }
-
-    @Test
-    fun `should return ok when event payload is missing`() {
+    fun `should delegate to eventRequestHandler when event payload is missing`() {
         val payload = mapOf<String, Any>()
 
         mockMvc
@@ -108,11 +68,12 @@ class SlackEventsControllerTest {
                     .content(objectMapper.writeValueAsString(payload)),
             ).andExpect(status().isOk)
 
-        verify(exactly = 0) { eventProcessor.process(any()) }
+        verify { challengeHandler.handle(any()) }
+        verify { eventRequestHandler.handle(any()) }
     }
 
     @Test
-    fun `should return ok for non-message event type`() {
+    fun `should delegate to eventRequestHandler for non-message event type`() {
         val payload =
             mapOf(
                 "event" to
@@ -131,22 +92,15 @@ class SlackEventsControllerTest {
                     .content(objectMapper.writeValueAsString(payload)),
             ).andExpect(status().isOk)
 
-        verify {
-            eventProcessor.process(
-                SlackEvent(
-                    type = "reaction_added",
-                    subtype = null,
-                    botId = null,
-                    text = "thumbsup",
-                    channel = "C456",
-                    threadTs = "1234567890.123456",
-                ),
-            )
-        }
+        verify { challengeHandler.handle(any()) }
+        verify { eventRequestHandler.handle(any()) }
     }
 
     @Test
     fun `should return challenge when url_verification request`() {
+        val challengeResponse: ResponseEntity<Any> = ResponseEntity.ok(mapOf("challenge" to "3eZbrw1aMUhUEjornBHxJXNQKzqnux salopes"))
+        every { challengeHandler.handle(any()) } returns challengeResponse
+
         val payload =
             mapOf(
                 "token" to "Jhj5dZrVaK7ZwHHjRyZWjbDl",
@@ -162,6 +116,7 @@ class SlackEventsControllerTest {
             ).andExpect(status().isOk)
             .andExpect(content().json("""{"challenge":"3eZbrw1aMUhUEjornBHxJXNQKzqnux salopes"}"""))
 
-        verify(exactly = 0) { eventProcessor.process(any()) }
+        verify { challengeHandler.handle(any()) }
+        verify(exactly = 0) { eventRequestHandler.handle(any()) }
     }
 }
