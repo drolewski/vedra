@@ -81,6 +81,31 @@ class SlackSignatureVerificationFilter(
         request: HttpServletRequest,
         private val body: ByteArray,
     ) : HttpServletRequestWrapper(request) {
+        private val parameters: Map<String, Array<String>> by lazy {
+            if (contentType?.contains("application/x-www-form-urlencoded") == true) {
+                String(body)
+                    .split("&")
+                    .mapNotNull { pair ->
+                        val parts = pair.split("=", limit = 2)
+                        if (parts.size == 2) {
+                            java.net.URLDecoder.decode(parts[0], Charsets.UTF_8) to
+                                java.net.URLDecoder.decode(parts[1], Charsets.UTF_8)
+                        } else {
+                            null
+                        }
+                    }.groupBy({ it.first }, { it.second })
+                    .mapValues { (_, v) -> v.toTypedArray() }
+            } else {
+                emptyMap()
+            }
+        }
+
+        override fun getParameter(name: String): String? = parameters[name]?.firstOrNull()
+
+        override fun getParameterValues(name: String): Array<String>? = parameters[name]
+
+        override fun getParameterMap(): Map<String, Array<String>> = parameters
+
         override fun getInputStream(): ServletInputStream =
             object : ServletInputStream() {
                 private val inputStream = ByteArrayInputStream(body)
