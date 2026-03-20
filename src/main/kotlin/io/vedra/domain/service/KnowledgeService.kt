@@ -34,13 +34,13 @@ class KnowledgeService(
             )
 
         if (similarEntries.isNotEmpty()) {
-            val maxScore = similarEntries.first().score
+            val acceptedEntries = similarEntries.filter { it.accepted }
 
-            if (maxScore >= HIGH_CONFIDENCE) {
-                return answerFromKnowledgeBase(similarEntries)
+            if (acceptedEntries.isNotEmpty() && acceptedEntries.first().score >= HIGH_CONFIDENCE) {
+                return answerFromKnowledgeBase(acceptedEntries)
             }
 
-            if (maxScore >= MEDIUM_CONFIDENCE) {
+            if (similarEntries.first().score >= MEDIUM_CONFIDENCE) {
                 return answerWithContext(question, similarEntries)
             }
         }
@@ -111,10 +111,13 @@ class KnowledgeService(
                 Prompts.General.userPrompt(question),
             ) ?: FALLBACK_ANSWER
 
+        val savedEntry = saveAiAnswer(question, llmAnswer)
+
         return AnswerResult(
             answer = llmAnswer,
             source = ResponseSource.AI_GENERAL,
             confidence = 0.0,
+            entryIds = listOfNotNull(savedEntry?.id),
         )
     }
 

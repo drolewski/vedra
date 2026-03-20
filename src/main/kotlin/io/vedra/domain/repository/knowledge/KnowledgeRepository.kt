@@ -12,9 +12,11 @@ interface KnowledgeRepository : JpaRepository<KnowledgeEntry, UUID> {
                      content,
                      answer,
                      source,
+                     accepted,
                      1 - (embedding <=> CAST(:embedding AS vector)) AS score
             FROM     knowledge_entries
             WHERE    tenant_id  = :tenantId
+              AND    answer IS NOT NULL
               AND    1 - (embedding <=> CAST(:embedding AS vector)) >= :minScore
             ORDER BY score DESC
             LIMIT    :limit
@@ -34,5 +36,6 @@ data class SimilarityResultProjection(
     val content: String,
     val answer: String?,
     val source: String,
+    val accepted: Boolean,
     val score: Double,
 )

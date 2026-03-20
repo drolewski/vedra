@@ -16,7 +16,6 @@ import java.util.Optional
 import java.util.UUID
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertTrue
 
 class KnowledgeServiceTest {
     private val knowledgeRepository: KnowledgeRepository = mockk(relaxed = true)
@@ -45,6 +44,7 @@ class KnowledgeServiceTest {
                     content = "Prawo Ohma",
                     answer = "U = I * R",
                     source = "FAQ",
+                    accepted = true,
                     score = 0.92,
                 ),
             )
@@ -72,6 +72,7 @@ class KnowledgeServiceTest {
                     content = "Izolacja fundamentów",
                     answer = "Stosuje się izolację przeciwwodną",
                     source = "FAQ",
+                    accepted = true,
                     score = 0.72,
                 ),
             )
@@ -87,7 +88,7 @@ class KnowledgeServiceTest {
     }
 
     @Test
-    fun `should use LLM without context when low confidence`() {
+    fun `should use LLM without context when low confidence and save answer`() {
         every {
             knowledgeRepository.findSimilarWithScore(any(), any(), any(), any())
         } returns emptyList()
@@ -98,8 +99,13 @@ class KnowledgeServiceTest {
         assertEquals("Odpowiedź ogólna z LLM.", result.answer)
         assertEquals(ResponseSource.AI_GENERAL, result.source)
         assertEquals(0.0, result.confidence)
-        assertTrue(result.entryIds.isEmpty())
-        verify(exactly = 0) { knowledgeRepository.save(any()) }
+        verify {
+            knowledgeRepository.save(
+                match {
+                    it.answerSource == AnswerSource.AI_GENERATED && !it.accepted && it.answer == "Odpowiedź ogólna z LLM."
+                },
+            )
+        }
     }
 
     @Test
@@ -113,6 +119,7 @@ class KnowledgeServiceTest {
                     content = "Niepowiązane",
                     answer = null,
                     source = "DOCUMENT_TEXT",
+                    accepted = true,
                     score = 0.55,
                 ),
             )
@@ -137,6 +144,7 @@ class KnowledgeServiceTest {
                     content = "Test",
                     answer = "Answer",
                     source = "FAQ",
+                    accepted = true,
                     score = 0.90,
                 ),
             )
@@ -161,6 +169,7 @@ class KnowledgeServiceTest {
                     content = "Test",
                     answer = "Partial",
                     source = "FAQ",
+                    accepted = true,
                     score = 0.70,
                 ),
             )
@@ -207,6 +216,68 @@ class KnowledgeServiceTest {
 
         assertEquals("Nie udało się wygenerować odpowiedzi.", result.answer)
         assertEquals(ResponseSource.AI_GENERAL, result.source)
+    }
+
+    @Test
+    fun `unchecked entry with high score should use RAG not direct answer`() {
+        val entryId = UUID.randomUUID()
+
+        every {
+            knowledgeRepository.findSimilarWithScore(any(), any(), any(), any())
+        } returns
+            listOf(
+                SimilarityResultProjection(
+                    id = entryId,
+                    content = "Pytanie podobne",
+                    answer = "Niesprawdzona odpowiedź",
+                    source = "FAQ",
+                    accepted = false,
+                    score = 0.92,
+                ),
+            )
+        every { llmPort.generate(any(), any()) } returns "LLM odpowiedź z kontekstem."
+
+        val result = service.answerQuestion("Pytanie?")
+
+        assertEquals(ResponseSource.AI_WITH_CONTEXT, result.source)
+        assertEquals(0.92, result.confidence)
+        verify { llmPort.generate(any(), any()) }
+    }
+
+    @Test
+    fun `accepted and unchecked entries with high score should use accepted for direct answer`() {
+        val acceptedId = UUID.randomUUID()
+        val uncheckedId = UUID.randomUUID()
+        val entry = knowledgeEntry(acceptedId)
+
+        every {
+            knowledgeRepository.findSimilarWithScore(any(), any(), any(), any())
+        } returns
+            listOf(
+                SimilarityResultProjection(
+                    id = uncheckedId,
+                    content = "Pytanie",
+                    answer = "Niesprawdzona",
+                    source = "FAQ",
+                    accepted = false,
+                    score = 0.93,
+                ),
+                SimilarityResultProjection(
+                    id = acceptedId,
+                    content = "Pytanie",
+                    answer = "Sprawdzona odpowiedź",
+                    source = "FAQ",
+                    accepted = true,
+                    score = 0.88,
+                ),
+            )
+        every { knowledgeRepository.findById(acceptedId) } returns Optional.of(entry)
+
+        val result = service.answerQuestion("Pytanie?")
+
+        assertEquals(ResponseSource.KNOWLEDGE_BASE, result.source)
+        assertEquals("Sprawdzona odpowiedź", result.answer)
+        verify(exactly = 0) { llmPort.generate(any(), any()) }
     }
 
     private fun knowledgeEntry(id: UUID) =
