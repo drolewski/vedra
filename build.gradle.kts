@@ -76,3 +76,7 @@ ktlint {
 tasks.check {
     dependsOn("ktlintCheck")
 }
+
+tasks.named("compileKotlin") {
+    dependsOn("ktlintFormat")
+}
