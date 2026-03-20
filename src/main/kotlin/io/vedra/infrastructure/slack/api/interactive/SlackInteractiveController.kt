@@ -21,14 +21,15 @@ class SlackInteractiveController(
     fun handleInteractive(
         @RequestParam payload: String,
     ): ResponseEntity<Any> {
-        val rawPayload =
-            try {
-                objectMapper.readValue(payload, Map::class.java) as Map<String, Any>
-            } catch (e: Exception) {
-                logger.warn(e) { "Failed to parse Slack interactive payload JSON" }
-                return ResponseEntity.ok().build()
-            }
-
+        val rawPayload = parseJsonPayload(payload) ?: return ResponseEntity.ok().build()
         return interactiveRequestHandler.handle(rawPayload)
     }
+
+    private fun parseJsonPayload(payload: String): Map<String, Any>? =
+        try {
+            objectMapper.readValue(payload, Map::class.java) as Map<String, Any>
+        } catch (e: Exception) {
+            logger.warn(e) { "Failed to parse Slack interactive payload JSON" }
+            null
+        }
 }
