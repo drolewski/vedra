@@ -109,25 +109,66 @@ class KnowledgeServiceTest {
     }
 
     @Test
-    fun `should use LLM without context when medium confidence but no matching entries`() {
+    fun `should use LLM without context when no entries found`() {
         every {
             knowledgeRepository.findSimilarWithScore(any(), any(), any(), any())
-        } returns
-            listOf(
-                SimilarityResultProjection(
-                    id = UUID.randomUUID(),
-                    content = "Niepowiązane",
-                    answer = null,
-                    source = "DOCUMENT_TEXT",
-                    accepted = true,
-                    score = 0.55,
-                ),
-            )
+        } returns emptyList()
         every { llmPort.generate(any(), any()) } returns "Brak informacji, LLM odpowiada."
 
         val result = service.answerQuestion("Pytanie?")
 
         assertEquals(ResponseSource.AI_GENERAL, result.source)
+    }
+
+    @Test
+    fun `should fall back to context answer when LLM says no info`() {
+        val entryId = UUID.randomUUID()
+
+        every {
+            knowledgeRepository.findSimilarWithScore(any(), any(), any(), any())
+        } returns
+            listOf(
+                SimilarityResultProjection(
+                    id = entryId,
+                    content = "Pytanie",
+                    answer = "Poprzednia odpowiedź AI",
+                    source = "FAQ",
+                    accepted = false,
+                    score = 0.75,
+                ),
+            )
+        every { llmPort.generate(any(), any()) } returns "Brak informacji w bazie wiedzy na ten temat."
+
+        val result = service.answerQuestion("Pytanie?")
+
+        assertEquals("Poprzednia odpowiedź AI", result.answer)
+        assertEquals(ResponseSource.AI_WITH_CONTEXT, result.source)
+        verify(exactly = 0) { knowledgeRepository.save(match { it.answerSource == AnswerSource.AI_GENERATED }) }
+    }
+
+    @Test
+    fun `should fall back to context answer when LLM returns null`() {
+        val entryId = UUID.randomUUID()
+
+        every {
+            knowledgeRepository.findSimilarWithScore(any(), any(), any(), any())
+        } returns
+            listOf(
+                SimilarityResultProjection(
+                    id = entryId,
+                    content = "Pytanie",
+                    answer = "Zapisana odpowiedź",
+                    source = "FAQ",
+                    accepted = false,
+                    score = 0.80,
+                ),
+            )
+        every { llmPort.generate(any(), any()) } returns null
+
+        val result = service.answerQuestion("Pytanie?")
+
+        assertEquals("Zapisana odpowiedź", result.answer)
+        assertEquals(ResponseSource.AI_WITH_CONTEXT, result.source)
     }
 
     @Test

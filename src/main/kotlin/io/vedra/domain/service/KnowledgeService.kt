@@ -92,7 +92,20 @@ class KnowledgeService(
             llmPort.generate(
                 Prompts.KnowledgeBase.system,
                 Prompts.KnowledgeBase.userPrompt(context, question),
-            ) ?: FALLBACK_ANSWER
+            )
+
+        if (llmAnswer == null || isNoInfo(llmAnswer)) {
+            val fallbackAnswer =
+                entries.firstNotNullOfOrNull { it.answer }
+                    ?: return answerWithoutContext(question)
+
+            return AnswerResult(
+                answer = fallbackAnswer,
+                source = ResponseSource.AI_WITH_CONTEXT,
+                confidence = entries.first().score,
+                entryIds = entries.map { it.id },
+            )
+        }
 
         val savedEntry = saveAiAnswer(question, llmAnswer)
 
@@ -128,6 +141,11 @@ class KnowledgeService(
                 "[Źródło ${index + 1}, typ: ${entry.source}, pewność: ${String.format("%.2f", entry.score)}] ${entry.content}$answerPart"
             }.joinToString("\n---\n")
 
+    private fun isNoInfo(answer: String): Boolean {
+        val lower = answer.lowercase()
+        return NO_INFO_PATTERNS.any { lower.contains(it.lowercase()) }
+    }
+
     private fun saveAiAnswer(
         question: String,
         answer: String,
@@ -154,8 +172,18 @@ class KnowledgeService(
 
         private const val HIGH_CONFIDENCE = 0.85
         private const val MEDIUM_CONFIDENCE = 0.65
-        private const val MIN_CONFIDENCE = 0.5
+        private const val MIN_CONFIDENCE = MEDIUM_CONFIDENCE
 
         private const val FALLBACK_ANSWER = "Nie udało się wygenerować odpowiedzi."
+
+        private val NO_INFO_PATTERNS =
+            listOf(
+                "brak informacji",
+                "nie mam informacji",
+                "nie posiadam informacji",
+                "nie zawiera informacji",
+                "baza wiedzy nie zawiera",
+                "nie udało się",
+            )
     }
 }
