@@ -36,7 +36,7 @@ class KnowledgeServiceTest {
         val entry = knowledgeEntry(entryId)
 
         every {
-            knowledgeRepository.findSimilarWithScore(any(), any(), any(), any())
+            knowledgeRepository.findSimilarWithScore(any(), any(), any(), any(), any())
         } returns
             listOf(
                 SimilarityResultProjection(
@@ -64,7 +64,7 @@ class KnowledgeServiceTest {
         val entryId = UUID.randomUUID()
 
         every {
-            knowledgeRepository.findSimilarWithScore(any(), any(), any(), any())
+            knowledgeRepository.findSimilarWithScore(any(), any(), any(), any(), any())
         } returns
             listOf(
                 SimilarityResultProjection(
@@ -90,7 +90,7 @@ class KnowledgeServiceTest {
     @Test
     fun `should use LLM without context when low confidence and save answer`() {
         every {
-            knowledgeRepository.findSimilarWithScore(any(), any(), any(), any())
+            knowledgeRepository.findSimilarWithScore(any(), any(), any(), any(), any())
         } returns emptyList()
         every { llmPort.generate(any(), any()) } returns "Odpowiedź ogólna z LLM."
 
@@ -111,7 +111,7 @@ class KnowledgeServiceTest {
     @Test
     fun `should use LLM without context when no entries found`() {
         every {
-            knowledgeRepository.findSimilarWithScore(any(), any(), any(), any())
+            knowledgeRepository.findSimilarWithScore(any(), any(), any(), any(), any())
         } returns emptyList()
         every { llmPort.generate(any(), any()) } returns "Brak informacji, LLM odpowiada."
 
@@ -125,7 +125,7 @@ class KnowledgeServiceTest {
         val entryId = UUID.randomUUID()
 
         every {
-            knowledgeRepository.findSimilarWithScore(any(), any(), any(), any())
+            knowledgeRepository.findSimilarWithScore(any(), any(), any(), any(), any())
         } returns
             listOf(
                 SimilarityResultProjection(
@@ -151,7 +151,7 @@ class KnowledgeServiceTest {
         val entryId = UUID.randomUUID()
 
         every {
-            knowledgeRepository.findSimilarWithScore(any(), any(), any(), any())
+            knowledgeRepository.findSimilarWithScore(any(), any(), any(), any(), any())
         } returns
             listOf(
                 SimilarityResultProjection(
@@ -177,7 +177,7 @@ class KnowledgeServiceTest {
         val entry = knowledgeEntry(entryId)
 
         every {
-            knowledgeRepository.findSimilarWithScore(any(), any(), any(), any())
+            knowledgeRepository.findSimilarWithScore(any(), any(), any(), any(), any())
         } returns
             listOf(
                 SimilarityResultProjection(
@@ -202,7 +202,7 @@ class KnowledgeServiceTest {
         val entryId = UUID.randomUUID()
 
         every {
-            knowledgeRepository.findSimilarWithScore(any(), any(), any(), any())
+            knowledgeRepository.findSimilarWithScore(any(), any(), any(), any(), any())
         } returns
             listOf(
                 SimilarityResultProjection(
@@ -249,7 +249,7 @@ class KnowledgeServiceTest {
     @Test
     fun `should return fallback when LLM returns null`() {
         every {
-            knowledgeRepository.findSimilarWithScore(any(), any(), any(), any())
+            knowledgeRepository.findSimilarWithScore(any(), any(), any(), any(), any())
         } returns emptyList()
         every { llmPort.generate(any(), any()) } returns null
 
@@ -264,7 +264,7 @@ class KnowledgeServiceTest {
         val entryId = UUID.randomUUID()
 
         every {
-            knowledgeRepository.findSimilarWithScore(any(), any(), any(), any())
+            knowledgeRepository.findSimilarWithScore(any(), any(), any(), any(), any())
         } returns
             listOf(
                 SimilarityResultProjection(
@@ -292,7 +292,7 @@ class KnowledgeServiceTest {
         val entry = knowledgeEntry(acceptedId)
 
         every {
-            knowledgeRepository.findSimilarWithScore(any(), any(), any(), any())
+            knowledgeRepository.findSimilarWithScore(any(), any(), any(), any(), any())
         } returns
             listOf(
                 SimilarityResultProjection(

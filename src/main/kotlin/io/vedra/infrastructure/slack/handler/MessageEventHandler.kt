@@ -2,6 +2,8 @@ package io.vedra.infrastructure.slack.handler
 
 import com.slack.api.model.event.MessageEvent
 import io.github.oshai.kotlinlogging.KotlinLogging
+import io.vedra.domain.service.TenantProjectService
+import io.vedra.domain.service.TenantService
 import io.vedra.infrastructure.outbox.service.OutboxService
 import io.vedra.infrastructure.slack.model.SlackEvent
 import io.vedra.infrastructure.slack.model.SlackEventHandler
@@ -13,6 +15,8 @@ private val logger = KotlinLogging.logger {}
 @Component
 class MessageEventHandler(
     private val outboxService: OutboxService,
+    private val tenantProjectService: TenantProjectService,
+    private val tenantService: TenantService,
 ) : SlackEventHandler {
     override fun supports(event: SlackEvent): Boolean = event.type == MessageEvent.TYPE_NAME
 
@@ -20,6 +24,7 @@ class MessageEventHandler(
         val channel = event.channel
         val threadTs = event.threadTs
         val question = event.text
+        val workspaceId = event.workspaceId
 
         logger.info { "MessageEventHandler received: channel=$channel threadTs=$threadTs text=${question?.take(50)}" }
 
@@ -28,17 +33,34 @@ class MessageEventHandler(
             return
         }
 
-        logger.info { "Saving message to outbox: channel=$channel threadTs=$threadTs eventId=${event.eventId}" }
+        val tenant =
+            try {
+                if (workspaceId != null) {
+                    tenantService.resolveTenantByWorkspace(workspaceId)
+                } else {
+                    tenantService.getDefaultTenant()
+                }
+            } catch (e: Exception) {
+                logger.error(e) { "Failed to resolve tenant for workspace=$workspaceId" }
+                tenantService.getDefaultTenant()
+            }
+
+        val projectIds = tenantProjectService.getProjectIdsForChannel(tenant.id!!, channel)
+        logger.info { "Resolved tenant=${tenant.name} projectIds for channel=$channel: $projectIds" }
 
         outboxService.saveEvent(
             eventType = SlackMessageAnswerHandler.EVENT_TYPE,
             aggregateId = event.eventId,
             payload =
-                mapOf(
+                mutableMapOf<String, Any>(
+                    "tenantId" to tenant.id.toString(),
                     "channel" to channel,
                     "threadTs" to threadTs,
                     "question" to question,
+                    "projectIds" to projectIds.filterNotNull().map { it.toString() },
                 ),
         )
+
+        logger.info { "Saved message to outbox: channel=$channel threadTs=$threadTs eventId=${event.eventId}" }
     }
 }

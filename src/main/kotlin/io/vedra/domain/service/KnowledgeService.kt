@@ -21,13 +21,20 @@ class KnowledgeService(
     private val llmPort: LLMPort,
 ) {
     @Transactional
-    fun answerQuestion(question: String): AnswerResult {
+    fun answerQuestion(question: String): AnswerResult = answerQuestion(question, listOf(null))
+
+    @Transactional
+    fun answerQuestion(
+        question: String,
+        projectIds: List<UUID?>,
+    ): AnswerResult {
         val embedding = embeddingPort.embed(question)
         val embeddingString = embedding.toArray().joinToString(",", "[", "]")
 
         val similarEntries =
             knowledgeRepository.findSimilarWithScore(
                 tenantId = TENANT_ID,
+                projectIds = projectIds,
                 embedding = embeddingString,
                 limit = 3,
                 minScore = MIN_CONFIDENCE,
@@ -52,11 +59,19 @@ class KnowledgeService(
     fun addKnowledge(
         question: String,
         answer: String,
+    ): KnowledgeEntry = addKnowledge(question, answer, null)
+
+    @Transactional
+    fun addKnowledge(
+        question: String,
+        answer: String,
+        projectId: UUID?,
     ): KnowledgeEntry {
         val embedding = embeddingPort.embed(question)
         val entry =
             KnowledgeEntry(
                 tenantId = TENANT_ID,
+                projectId = projectId,
                 source = KnowledgeSourceType.FAQ,
                 content = question,
                 answer = answer,
@@ -149,12 +164,14 @@ class KnowledgeService(
     private fun saveAiAnswer(
         question: String,
         answer: String,
+        projectId: UUID? = null,
     ): KnowledgeEntry? =
         try {
             val embedding = embeddingPort.embed(question)
             val entry =
                 KnowledgeEntry(
                     tenantId = TENANT_ID,
+                    projectId = projectId,
                     source = KnowledgeSourceType.FAQ,
                     content = question,
                     answer = answer,

@@ -23,15 +23,26 @@ class SlackMessageAnswerHandler(
         val channel = event.payload["channel"] as? String
         val threadTs = event.payload["threadTs"] as? String
         val question = event.payload["question"] as? String
+        val tenantId = event.payload["tenantId"] as? String
 
         if (channel == null || threadTs == null || question == null) {
             logger.warn { "Missing required payload fields in SLACK_MESSAGE_ANSWER event: ${event.id}" }
             return
         }
 
-        logger.debug { "Processing answer for question in channel=$channel threadTs=$threadTs" }
+        val projectIds =
+            (event.payload["projectIds"] as? List<*>)
+                ?.filterIsInstance<String>()
+                ?.map { UUID.fromString(it) }
+                ?: emptyList()
 
-        val result = knowledgeService.answerQuestion(question)
+        val allProjectIds: List<UUID?> = projectIds + listOf<UUID?>(null)
+
+        logger.debug {
+            "Processing answer for tenant=$tenantId channel=$channel threadTs=$threadTs projectIds=$projectIds"
+        }
+
+        val result = knowledgeService.answerQuestion(question, allProjectIds)
         val feedbackId = UUID.randomUUID().toString()
 
         val messageTs =

@@ -8,6 +8,7 @@ data class SlackEvent(
     val text: String?,
     val channel: String?,
     val threadTs: String?,
+    val workspaceId: String? = null,
 ) {
     val isBotMessage: Boolean
         get() = subtype == "bot_message" || botId != null
@@ -16,6 +17,7 @@ data class SlackEvent(
         fun fromRawPayload(
             payload: Map<*, *>,
             eventId: String? = null,
+            workspaceId: String? = null,
         ): SlackEvent =
             SlackEvent(
                 eventId = eventId,
@@ -25,14 +27,16 @@ data class SlackEvent(
                 text = payload["text"] as? String,
                 channel = payload["channel"] as? String,
                 threadTs = payload["thread_ts"] as? String ?: payload["ts"] as? String,
+                workspaceId = workspaceId,
             )
 
         fun fromRawBody(body: Map<String, Any>): SlackEvent {
             val eventId = body["event_id"] as? String
+            val teamId = body["team_id"] as? String
             val event =
                 body["event"] as? Map<*, *>
                     ?: throw IllegalArgumentException("Missing 'event' field in Slack event body")
-            return fromRawPayload(event, eventId)
+            return fromRawPayload(event, eventId, teamId)
         }
     }
 }

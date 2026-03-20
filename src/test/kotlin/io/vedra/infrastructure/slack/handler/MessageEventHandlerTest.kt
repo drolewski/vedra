@@ -3,16 +3,34 @@ package io.vedra.infrastructure.slack.handler
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
+import io.vedra.domain.service.TenantProjectService
+import io.vedra.domain.service.TenantService
 import io.vedra.infrastructure.database.outbox.OutboxEvent
+import io.vedra.infrastructure.database.tenant.Tenant
 import io.vedra.infrastructure.outbox.service.OutboxService
 import io.vedra.infrastructure.slack.model.SlackEvent
+import java.util.UUID
 import kotlin.test.Test
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class MessageEventHandlerTest {
     private val outboxService: OutboxService = mockk(relaxed = true)
-    private val handler = MessageEventHandler(outboxService)
+    private val tenantProjectService: TenantProjectService = mockk()
+    private val tenantService: TenantService = mockk()
+    private val handler = MessageEventHandler(outboxService, tenantProjectService, tenantService)
+
+    private val testTenant =
+        Tenant(
+            id = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB"),
+            name = "Test Tenant",
+        )
+
+    init {
+        every { tenantProjectService.getProjectIdsForChannel(any(), any()) } returns listOf(null)
+        every { tenantService.getDefaultTenant() } returns testTenant
+        every { tenantService.resolveTenantByWorkspace(any()) } returns testTenant
+    }
 
     @Test
     fun `should support message event type`() {
@@ -57,6 +75,7 @@ class MessageEventHandlerTest {
                 text = "Jakie jest prawo Ohma?",
                 channel = "C456",
                 threadTs = "1234567890.123456",
+                workspaceId = "T123",
             )
 
         every {
@@ -77,7 +96,8 @@ class MessageEventHandlerTest {
                     match {
                         it["channel"] == "C456" &&
                             it["threadTs"] == "1234567890.123456" &&
-                            it["question"] == "Jakie jest prawo Ohma?"
+                            it["question"] == "Jakie jest prawo Ohma?" &&
+                            it["tenantId"] == testTenant.id.toString()
                     },
             )
         }

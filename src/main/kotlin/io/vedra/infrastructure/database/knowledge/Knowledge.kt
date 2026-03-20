@@ -22,6 +22,7 @@ import java.util.UUID
     indexes = [
         Index(name = "idx_knowledge_entries_tenant_id", columnList = "tenant_id"),
         Index(name = "idx_knowledge_entries_source", columnList = "tenant_id, source"),
+        Index(name = "idx_knowledge_project", columnList = "tenant_id, project_id"),
     ],
 )
 @TypeRegistration(basicClass = PGvector::class, userType = PGvectorUserType::class)
@@ -32,6 +33,8 @@ data class KnowledgeEntry(
     val id: UUID? = null,
     @Column(name = "tenant_id", nullable = false, updatable = false)
     val tenantId: UUID,
+    @Column(name = "project_id", updatable = false)
+    val projectId: UUID? = null,
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 50)
     val source: KnowledgeSourceType,
