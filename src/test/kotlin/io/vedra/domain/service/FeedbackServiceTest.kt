@@ -60,7 +60,7 @@ class FeedbackServiceTest {
     }
 
     @Test
-    fun `same vote from same user should return NO_CHANGE`() {
+    fun `already voted user should return NO_CHANGE`() {
         val entryId = UUID.randomUUID()
         val mapping =
             FeedbackMapping(
@@ -72,34 +72,11 @@ class FeedbackServiceTest {
             )
 
         every { feedbackMappingRepository.findById("fb-1") } returns Optional.of(mapping)
-
-        val result = service.applyVote("fb-1", "U001", "positive")
-
-        assertEquals(FeedbackService.VoteResult.NO_CHANGE, result)
-        verify(exactly = 0) { knowledgeRepository.save(any()) }
-    }
-
-    @Test
-    fun `vote change from positive to negative should return CHANGED`() {
-        val entryId = UUID.randomUUID()
-        val entry = knowledgeEntry(entryId, qualityScore = 0.6f)
-        val mapping =
-            FeedbackMapping(
-                id = "fb-1",
-                channel = "C123",
-                messageTs = "222.0",
-                entryIds = listOf(entryId.toString()),
-                votes = mapOf("U001" to "positive"),
-            )
-
-        every { feedbackMappingRepository.findById("fb-1") } returns Optional.of(mapping)
-        every { knowledgeRepository.findByIds(listOf(entryId)) } returns listOf(entry)
 
         val result = service.applyVote("fb-1", "U001", "negative")
 
-        assertEquals(FeedbackService.VoteResult.CHANGED, result)
-        assertTrue(entry.qualityScore < 0.6f)
-        verify { knowledgeRepository.save(entry) }
+        assertEquals(FeedbackService.VoteResult.NO_CHANGE, result)
+        verify(exactly = 0) { knowledgeRepository.save(any()) }
     }
 
     @Test

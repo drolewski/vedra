@@ -2,6 +2,7 @@ package io.vedra.infrastructure.slack.api.interactive
 
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import io.vedra.infrastructure.outbox.service.OutboxService
+import io.vedra.infrastructure.slack.service.SlackMessageService
 import io.vedra.infrastructure.slack.service.SlackMessageService.Companion.ACTION_NEGATIVE
 import io.vedra.infrastructure.slack.service.SlackMessageService.Companion.ACTION_POSITIVE
 import org.springframework.http.MediaType
@@ -9,14 +10,13 @@ import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
-import org.springframework.web.reactive.function.client.WebClient
 
 @RestController
 class SlackInteractiveController(
     private val outboxService: OutboxService,
+    private val slackMessageService: SlackMessageService,
 ) {
     private val objectMapper = jacksonObjectMapper()
-    private val webClient = WebClient.create()
 
     @PostMapping("/api/v1/slack/interactive", produces = [MediaType.APPLICATION_JSON_VALUE])
     fun handleInteractive(
@@ -33,8 +33,6 @@ class SlackInteractiveController(
         val user = json["user"] as? Map<*, *> ?: return ResponseEntity.ok().build()
         val userId = user["id"] as? String ?: return ResponseEntity.ok().build()
 
-        val responseUrl = json["response_url"] as? String
-
         val vote =
             when (actionId) {
                 ACTION_POSITIVE -> "positive"
@@ -44,7 +42,7 @@ class SlackInteractiveController(
 
         outboxService.saveEvent(
             eventType = EVENT_TYPE,
-            aggregateId = "${feedbackId}_${userId}_$vote",
+            aggregateId = "${feedbackId}_$userId",
             payload =
                 mapOf(
                     "feedbackId" to feedbackId,
@@ -53,35 +51,21 @@ class SlackInteractiveController(
                 ),
         )
 
-        if (responseUrl != null) {
-            sendConfirmation(responseUrl, vote)
+        try {
+            val message = json["message"] as? Map<*, *>
+            val channel =
+                (json["container"] as? Map<*, *>)?.get("channel_id") as? String
+                    ?: message?.get("channel") as? String
+            val messageTs = message?.get("ts") as? String
+            val originalBlocks = message?.get("blocks") as? List<*>
+
+            if (channel != null && messageTs != null && originalBlocks != null) {
+                slackMessageService.replaceFeedbackButtons(channel, messageTs, originalBlocks, vote)
+            }
+        } catch (_: Exception) {
         }
 
         return ResponseEntity.ok().build()
-    }
-
-    private fun sendConfirmation(
-        responseUrl: String,
-        vote: String,
-    ) {
-        val message =
-            when (vote) {
-                "positive" -> "Dziękujemy za feedback! Twoja opinia została zapisana."
-                "negative" -> "Dziękujemy za feedback! Będziemy pracować nad poprawą odpowiedzi."
-                else -> "Feedback przyjęty."
-            }
-
-        try {
-            webClient
-                .post()
-                .uri(responseUrl)
-                .contentType(MediaType.APPLICATION_JSON)
-                .bodyValue(mapOf("text" to message, "replace_original" to false))
-                .retrieve()
-                .toBodilessEntity()
-                .block()
-        } catch (_: Exception) {
-        }
     }
 
     companion object {
