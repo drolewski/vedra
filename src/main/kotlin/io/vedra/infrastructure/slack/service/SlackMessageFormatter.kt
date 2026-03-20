@@ -1,44 +1,39 @@
 package io.vedra.infrastructure.slack.service
 
 import io.vedra.domain.model.AnswerResult
-import io.vedra.domain.model.ResponseSource
-import io.vedra.infrastructure.slack.model.dto.SlackInteractionPayload.Companion.ACTION_NEGATIVE
-import io.vedra.infrastructure.slack.model.dto.SlackInteractionPayload.Companion.ACTION_POSITIVE
+import io.vedra.infrastructure.slack.formatter.AnswerBlockBuilder
+import io.vedra.infrastructure.slack.formatter.ConfidenceBlockBuilder
+import io.vedra.infrastructure.slack.formatter.FeedbackBlockBuilder
+import io.vedra.infrastructure.slack.formatter.HeaderBlockBuilder
+import io.vedra.infrastructure.slack.formatter.SourceBlockBuilder
 import org.springframework.stereotype.Component
 
 @Component
 class SlackMessageFormatter {
     fun buildAnswerBlocks(
-        text: String,
+        result: AnswerResult,
         feedbackId: String,
-    ): List<Map<String, Any>> =
-        listOf(
-            mapOf(
-                "type" to "section",
-                "text" to mapOf("type" to "mrkdwn", "text" to text),
-            ),
-            mapOf(
-                "type" to "actions",
-                "block_id" to BLOCK_ACTIONS,
-                "elements" to
-                    listOf(
-                        mapOf(
-                            "type" to "button",
-                            "text" to mapOf("type" to "plain_text", "text" to LABEL_HELPFUL),
-                            "action_id" to ACTION_POSITIVE,
-                            "value" to feedbackId,
-                            "style" to "primary",
+    ): List<Map<String, Any>> = buildDecoratedBlocks(result, feedbackId)
+
+    private fun buildDecoratedBlocks(
+        result: AnswerResult,
+        feedbackId: String,
+    ): List<Map<String, Any>> {
+        val builder =
+            FeedbackBlockBuilder(
+                ConfidenceBlockBuilder(
+                    SourceBlockBuilder(
+                        HeaderBlockBuilder(
+                            AnswerBlockBuilder(result),
                         ),
-                        mapOf(
-                            "type" to "button",
-                            "text" to mapOf("type" to "plain_text", "text" to LABEL_NOT_HELPFUL),
-                            "action_id" to ACTION_NEGATIVE,
-                            "value" to feedbackId,
-                            "style" to "danger",
-                        ),
+                        result.source,
                     ),
-            ),
-        )
+                    result.confidence,
+                ),
+                feedbackId,
+            )
+        return builder.build()
+    }
 
     fun buildConfirmationBlocks(
         originalBlocks: List<Map<String, Any>>,
@@ -54,7 +49,7 @@ class SlackMessageFormatter {
                     ),
             )
 
-        return originalBlocks.filter { it["block_id"] != BLOCK_ACTIONS } + confirmationBlock
+        return originalBlocks.filter { it["block_id"] != FeedbackBlockBuilder.BLOCK_ACTIONS } + confirmationBlock
     }
 
     fun formatAnswer(result: AnswerResult): String {
@@ -69,16 +64,10 @@ class SlackMessageFormatter {
             else -> vote
         }
 
-    private fun resolveSourceLabel(source: ResponseSource): String =
+    private fun resolveSourceLabel(source: io.vedra.domain.model.ResponseSource): String =
         when (source) {
-            ResponseSource.KNOWLEDGE_BASE -> "_Odpowiedź z bazy wiedzy._"
-            ResponseSource.AI_WITH_CONTEXT -> "_Wygenerowane przez AI na podstawie bazy wiedzy._"
-            ResponseSource.AI_GENERAL -> "_Wygenerowane przez AI. Brak informacji w bazie wiedzy._"
+            io.vedra.domain.model.ResponseSource.KNOWLEDGE_BASE -> "_Odpowiedź z bazy wiedzy._"
+            io.vedra.domain.model.ResponseSource.AI_WITH_CONTEXT -> "_Wygenerowane przez AI na podstawie bazy wiedzy._"
+            io.vedra.domain.model.ResponseSource.AI_GENERAL -> "_Wygenerowane przez AI. Brak informacji w bazie wiedzy._"
         }
-
-    companion object {
-        const val BLOCK_ACTIONS = "feedback_actions"
-        const val LABEL_HELPFUL = "Pomogło :+1:"
-        const val LABEL_NOT_HELPFUL = "Nie pomogło :-1:"
-    }
 }

@@ -1,6 +1,7 @@
 package io.vedra.infrastructure.slack.service
 
 import io.github.oshai.kotlinlogging.KotlinLogging
+import io.vedra.domain.model.AnswerResult
 import io.vedra.infrastructure.slack.port.SlackClientPort
 import org.springframework.stereotype.Service
 
@@ -23,12 +24,13 @@ class SlackMessageService(
     fun sendThreadMessageWithFeedback(
         channel: String,
         threadTs: String,
-        text: String,
+        result: AnswerResult,
         feedbackId: String,
     ): String {
         logger.debug { "Sending thread message with feedback to channel=$channel threadTs=$threadTs feedbackId=$feedbackId" }
-        val blocks = messageFormatter.buildAnswerBlocks(text, feedbackId)
-        return slackClient.postThreadMessageWithBlocks(channel, threadTs, blocks, text)
+        val blocks = messageFormatter.buildAnswerBlocks(result, feedbackId)
+        val fallbackText = messageFormatter.formatAnswer(result)
+        return slackClient.postThreadMessageWithBlocks(channel, threadTs, blocks, fallbackText)
     }
 
     fun replaceFeedbackButtons(

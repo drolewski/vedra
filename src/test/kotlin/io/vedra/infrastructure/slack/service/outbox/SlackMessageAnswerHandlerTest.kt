@@ -8,7 +8,6 @@ import io.vedra.domain.model.ResponseSource
 import io.vedra.domain.service.FeedbackService
 import io.vedra.domain.service.KnowledgeService
 import io.vedra.infrastructure.database.outbox.OutboxEvent
-import io.vedra.infrastructure.slack.service.SlackMessageFormatter
 import io.vedra.infrastructure.slack.service.SlackMessageService
 import java.util.UUID
 import kotlin.test.Test
@@ -19,8 +18,7 @@ class SlackMessageAnswerHandlerTest {
     private val knowledgeService: KnowledgeService = mockk()
     private val slackMessageService: SlackMessageService = mockk(relaxed = true)
     private val feedbackService: FeedbackService = mockk(relaxed = true)
-    private val messageFormatter: SlackMessageFormatter = SlackMessageFormatter()
-    private val handler = SlackMessageAnswerHandler(knowledgeService, slackMessageService, feedbackService, messageFormatter)
+    private val handler = SlackMessageAnswerHandler(knowledgeService, slackMessageService, feedbackService)
 
     @Test
     fun `should support SLACK_MESSAGE_ANSWER event type`() {
@@ -48,9 +46,7 @@ class SlackMessageAnswerHandlerTest {
                     ),
             )
 
-        every {
-            knowledgeService.answerQuestion("Jakie jest prawo Ohma?")
-        } returns
+        val expectedResult =
             AnswerResult(
                 answer = "U = I * R",
                 source = ResponseSource.KNOWLEDGE_BASE,
@@ -58,19 +54,18 @@ class SlackMessageAnswerHandlerTest {
                 entryIds = listOf(entryId),
             )
 
-        every {
-            slackMessageService.sendThreadMessageWithFeedback(any(), any(), any(), any())
-        } returns "222.0"
+        every { knowledgeService.answerQuestion("Jakie jest prawo Ohma?") } returns expectedResult
+        every { slackMessageService.sendThreadMessageWithFeedback(any(), any(), any(), any()) } returns "222.0"
 
         handler.handle(event)
 
         verify { knowledgeService.answerQuestion("Jakie jest prawo Ohma?") }
         verify {
             slackMessageService.sendThreadMessageWithFeedback(
-                "C123",
-                "1234567890.123456",
-                match { it.contains("U = I * R") },
-                any(),
+                channel = "C123",
+                threadTs = "1234567890.123456",
+                result = expectedResult,
+                feedbackId = any(),
             )
         }
         verify {
