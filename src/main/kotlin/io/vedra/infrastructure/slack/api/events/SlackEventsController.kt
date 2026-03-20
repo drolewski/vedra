@@ -16,7 +16,12 @@ class SlackEventsController(
     @PostMapping
     fun slackEvents(
         @RequestBody body: Map<String, Any>,
-    ): ResponseEntity<Void> {
+    ): ResponseEntity<Any> {
+        val challenge = body["challenge"] as? String
+        if (challenge != null) {
+            return ResponseEntity.ok(mapOf("challenge" to challenge))
+        }
+
         val eventPayload = body["event"] as? Map<*, *> ?: return ResponseEntity.ok().build()
         val event = SlackEvent.fromRawPayload(eventPayload)
         eventProcessor.process(event)

@@ -11,6 +11,7 @@ import org.junit.jupiter.api.Test
 import org.springframework.http.MediaType
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
+import org.springframework.test.web.servlet.result.MockMvcResultMatchers.content
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 import org.springframework.test.web.servlet.setup.MockMvcBuilders
 
@@ -142,5 +143,25 @@ class SlackEventsControllerTest {
                 ),
             )
         }
+    }
+
+    @Test
+    fun `should return challenge when url_verification request`() {
+        val payload =
+            mapOf(
+                "token" to "Jhj5dZrVaK7ZwHHjRyZWjbDl",
+                "challenge" to "3eZbrw1aMUhUEjornBHxJXNQKzqnux salopes",
+                "type" to "url_verification",
+            )
+
+        mockMvc
+            .perform(
+                post("/api/v1/slack/events")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(payload)),
+            ).andExpect(status().isOk)
+            .andExpect(content().json("""{"challenge":"3eZbrw1aMUhUEjornBHxJXNQKzqnux salopes"}"""))
+
+        verify(exactly = 0) { eventProcessor.process(any()) }
     }
 }
