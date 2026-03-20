@@ -1,4 +1,4 @@
-package io.vedra.infrastructure.slack
+package io.vedra.infrastructure.slack.service
 
 import com.slack.api.bolt.App
 import org.springframework.stereotype.Service

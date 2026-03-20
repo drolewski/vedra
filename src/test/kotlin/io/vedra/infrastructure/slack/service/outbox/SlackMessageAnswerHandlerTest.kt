@@ -5,7 +5,7 @@ import io.mockk.mockk
 import io.mockk.verify
 import io.vedra.domain.service.KnowledgeService
 import io.vedra.infrastructure.database.outbox.OutboxEvent
-import io.vedra.infrastructure.slack.SlackMessageService
+import io.vedra.infrastructure.slack.service.SlackMessageService
 import kotlin.test.Test
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
