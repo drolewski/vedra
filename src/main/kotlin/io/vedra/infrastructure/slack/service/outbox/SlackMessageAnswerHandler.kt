@@ -2,6 +2,7 @@ package io.vedra.infrastructure.slack.service.outbox
 
 import io.vedra.domain.model.AnswerResult
 import io.vedra.domain.model.ResponseSource
+import io.vedra.domain.service.FeedbackService
 import io.vedra.domain.service.KnowledgeService
 import io.vedra.infrastructure.database.outbox.OutboxEvent
 import io.vedra.infrastructure.outbox.handler.OutboxEventHandler
@@ -12,6 +13,7 @@ import org.springframework.stereotype.Component
 class SlackMessageAnswerHandler(
     private val knowledgeService: KnowledgeService,
     private val slackMessageService: SlackMessageService,
+    private val feedbackService: FeedbackService,
 ) : OutboxEventHandler {
     override fun supports(eventType: String): Boolean = eventType == "SLACK_MESSAGE_ANSWER"
 
@@ -23,6 +25,12 @@ class SlackMessageAnswerHandler(
         val result = knowledgeService.answerQuestion(question)
         val message = formatMessage(result)
         slackMessageService.sendThreadMessage(channel, threadTs, message)
+
+        feedbackService.saveMapping(
+            threadTs = threadTs,
+            entryIds = result.entryIds,
+            answerSource = result.source.name,
+        )
     }
 
     private fun formatMessage(result: AnswerResult): String {

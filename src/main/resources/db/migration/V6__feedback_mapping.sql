@@ -1,0 +1,6 @@
+CREATE TABLE IF NOT EXISTS feedback_mappings (
+    thread_ts VARCHAR(50) PRIMARY KEY,
+    entry_ids JSONB NOT NULL,
+    answer_source VARCHAR(20) NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);

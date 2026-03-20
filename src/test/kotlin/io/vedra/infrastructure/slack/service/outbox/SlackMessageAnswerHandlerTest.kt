@@ -5,9 +5,11 @@ import io.mockk.mockk
 import io.mockk.verify
 import io.vedra.domain.model.AnswerResult
 import io.vedra.domain.model.ResponseSource
+import io.vedra.domain.service.FeedbackService
 import io.vedra.domain.service.KnowledgeService
 import io.vedra.infrastructure.database.outbox.OutboxEvent
 import io.vedra.infrastructure.slack.service.SlackMessageService
+import java.util.UUID
 import kotlin.test.Test
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
@@ -15,7 +17,8 @@ import kotlin.test.assertTrue
 class SlackMessageAnswerHandlerTest {
     private val knowledgeService: KnowledgeService = mockk()
     private val slackMessageService: SlackMessageService = mockk(relaxed = true)
-    private val handler = SlackMessageAnswerHandler(knowledgeService, slackMessageService)
+    private val feedbackService: FeedbackService = mockk(relaxed = true)
+    private val handler = SlackMessageAnswerHandler(knowledgeService, slackMessageService, feedbackService)
 
     @Test
     fun `should support SLACK_MESSAGE_ANSWER event type`() {
@@ -31,6 +34,7 @@ class SlackMessageAnswerHandlerTest {
 
     @Test
     fun `should handle event by calling knowledgeService and sending formatted message`() {
+        val entryId = UUID.randomUUID()
         val event =
             OutboxEvent(
                 eventType = "SLACK_MESSAGE_ANSWER",
@@ -49,6 +53,7 @@ class SlackMessageAnswerHandlerTest {
                 answer = "U = I * R",
                 source = ResponseSource.KNOWLEDGE_BASE,
                 confidence = 0.92,
+                entryIds = listOf(entryId),
             )
 
         handler.handle(event)
@@ -59,6 +64,13 @@ class SlackMessageAnswerHandlerTest {
                 "C123",
                 "1234567890.123456",
                 "U = I * R\n\n_Odpowiedź z bazy wiedzy._",
+            )
+        }
+        verify {
+            feedbackService.saveMapping(
+                threadTs = "1234567890.123456",
+                entryIds = listOf(entryId),
+                answerSource = "KNOWLEDGE_BASE",
             )
         }
     }

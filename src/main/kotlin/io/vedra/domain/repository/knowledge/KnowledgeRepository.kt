@@ -8,6 +8,15 @@ import java.util.UUID
 interface KnowledgeRepository : JpaRepository<KnowledgeEntry, UUID> {
     @Query(
         value = """
+            SELECT * FROM knowledge_entries
+            WHERE id IN (:ids)
+        """,
+        nativeQuery = true,
+    )
+    fun findByIds(ids: List<UUID>): List<KnowledgeEntry>
+
+    @Query(
+        value = """
             SELECT   id,
                      content,
                      answer,
