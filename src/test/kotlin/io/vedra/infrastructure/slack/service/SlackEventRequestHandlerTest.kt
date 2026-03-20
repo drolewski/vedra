@@ -2,7 +2,7 @@ package io.vedra.infrastructure.slack.service
 
 import io.mockk.mockk
 import io.mockk.verify
-import io.vedra.infrastructure.slack.model.dto.SlackEventPayload
+import io.vedra.infrastructure.slack.model.SlackEvent
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
@@ -29,7 +29,7 @@ class SlackEventRequestHandlerTest {
         assertEquals(200, response.statusCode.value())
         verify {
             eventProcessor.process(
-                SlackEventPayload(
+                SlackEvent(
                     eventId = "Ev123",
                     type = "message",
                     subtype = null,
@@ -81,7 +81,7 @@ class SlackEventRequestHandlerTest {
 
         verify {
             eventProcessor.process(
-                SlackEventPayload(
+                SlackEvent(
                     eventId = null,
                     type = "message",
                     subtype = "bot_message",

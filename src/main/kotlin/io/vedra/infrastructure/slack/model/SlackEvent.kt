@@ -26,5 +26,13 @@ data class SlackEvent(
                 channel = payload["channel"] as? String,
                 threadTs = payload["thread_ts"] as? String ?: payload["ts"] as? String,
             )
+
+        fun fromRawBody(body: Map<String, Any>): SlackEvent {
+            val eventId = body["event_id"] as? String
+            val event =
+                body["event"] as? Map<*, *>
+                    ?: throw IllegalArgumentException("Missing 'event' field in Slack event body")
+            return fromRawPayload(event, eventId)
+        }
     }
 }

@@ -10,8 +10,14 @@ private val logger = KotlinLogging.logger {}
 @Component
 class SlackChallengeHandler {
     fun handle(body: Map<String, Any>): ResponseEntity<Any>? {
-        val payload = SlackChallengePayload.fromRawBody(body)
+        val challenge =
+            try {
+                SlackChallengePayload.fromRawBody(body).challenge
+            } catch (e: IllegalArgumentException) {
+                return null
+            }
+
         logger.info { "Responding to Slack URL verification challenge" }
-        return ResponseEntity.ok(mapOf("challenge" to payload.challenge))
+        return ResponseEntity.ok(mapOf("challenge" to challenge))
     }
 }

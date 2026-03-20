@@ -21,12 +21,14 @@ class MessageEventHandler(
         val threadTs = event.threadTs
         val question = event.text
 
+        logger.info { "MessageEventHandler received: channel=$channel threadTs=$threadTs text=${question?.take(50)}" }
+
         if (channel == null || threadTs == null || question.isNullOrBlank()) {
-            logger.debug { "Skipping incomplete message event: channel=$channel threadTs=$threadTs eventId=${event.eventId}" }
+            logger.info { "Skipping incomplete message event: channel=$channel threadTs=$threadTs textBlank=${question.isNullOrBlank()}" }
             return
         }
 
-        logger.debug { "Saving message to outbox: channel=$channel threadTs=$threadTs eventId=${event.eventId}" }
+        logger.info { "Saving message to outbox: channel=$channel threadTs=$threadTs eventId=${event.eventId}" }
 
         outboxService.saveEvent(
             eventType = SlackMessageAnswerHandler.EVENT_TYPE,

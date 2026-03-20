@@ -4,9 +4,9 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
 import io.vedra.infrastructure.slack.filter.BotMessageFilter
+import io.vedra.infrastructure.slack.model.SlackEvent
 import io.vedra.infrastructure.slack.model.SlackEventFilter
 import io.vedra.infrastructure.slack.model.SlackEventHandler
-import io.vedra.infrastructure.slack.model.dto.SlackEventPayload
 import kotlin.test.Test
 
 class SlackEventProcessorTest {
@@ -14,8 +14,8 @@ class SlackEventProcessorTest {
     private val handler: SlackEventHandler = mockk(relaxed = true)
     private val processor = SlackEventProcessor(listOf(filter), listOf(handler))
 
-    private val userEventPayload =
-        SlackEventPayload(
+    private val userEvent =
+        SlackEvent(
             eventId = "Ev123",
             type = "message",
             subtype = null,
@@ -25,14 +25,12 @@ class SlackEventProcessorTest {
             threadTs = "1234567890.123456",
         )
 
-    private val userEvent = userEventPayload.toDomain()
-
     @Test
     fun `should process event when all filters pass`() {
         every { filter.shouldProcess(userEvent) } returns true
         every { handler.supports(userEvent) } returns true
 
-        processor.process(userEventPayload)
+        processor.process(userEvent)
 
         verify { handler.handle(userEvent) }
     }
@@ -41,7 +39,7 @@ class SlackEventProcessorTest {
     fun `should not process event when filter rejects`() {
         every { filter.shouldProcess(userEvent) } returns false
 
-        processor.process(userEventPayload)
+        processor.process(userEvent)
 
         verify(exactly = 0) { handler.handle(any()) }
     }
@@ -51,7 +49,7 @@ class SlackEventProcessorTest {
         every { filter.shouldProcess(userEvent) } returns true
         every { handler.supports(userEvent) } returns false
 
-        processor.process(userEventPayload)
+        processor.process(userEvent)
 
         verify(exactly = 0) { handler.handle(any()) }
     }
@@ -65,7 +63,7 @@ class SlackEventProcessorTest {
         every { secondFilter.shouldProcess(userEvent) } returns true
         every { handler.supports(userEvent) } returns true
 
-        multiFilterProcessor.process(userEventPayload)
+        multiFilterProcessor.process(userEvent)
 
         verify { handler.handle(userEvent) }
     }
@@ -78,7 +76,7 @@ class SlackEventProcessorTest {
         every { filter.shouldProcess(userEvent) } returns true
         every { secondFilter.shouldProcess(userEvent) } returns false
 
-        multiFilterProcessor.process(userEventPayload)
+        multiFilterProcessor.process(userEvent)
 
         verify(exactly = 0) { handler.handle(any()) }
     }
@@ -92,7 +90,7 @@ class SlackEventProcessorTest {
         every { handler.supports(userEvent) } returns false
         every { secondHandler.supports(userEvent) } returns true
 
-        multiHandlerProcessor.process(userEventPayload)
+        multiHandlerProcessor.process(userEvent)
 
         verify(exactly = 0) { handler.handle(any()) }
         verify { secondHandler.handle(userEvent) }
@@ -100,8 +98,8 @@ class SlackEventProcessorTest {
 
     @Test
     fun `should not process bot message due to filter`() {
-        val botEventPayload =
-            SlackEventPayload(
+        val botEvent =
+            SlackEvent(
                 eventId = "Ev123",
                 type = "message",
                 subtype = "bot_message",
@@ -114,7 +112,7 @@ class SlackEventProcessorTest {
         val botFilter = BotMessageFilter()
         val botProcessor = SlackEventProcessor(listOf(botFilter), listOf(handler))
 
-        botProcessor.process(botEventPayload)
+        botProcessor.process(botEvent)
 
         verify(exactly = 0) { handler.handle(any()) }
     }

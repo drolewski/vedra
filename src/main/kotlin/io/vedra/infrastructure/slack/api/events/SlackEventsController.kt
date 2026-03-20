@@ -21,7 +21,7 @@ class SlackEventsController(
     fun slackEvents(
         @RequestBody body: Map<String, Any>,
     ): ResponseEntity<Any> {
-        logger.debug { "Received Slack events callback" }
+        logger.info { "Received Slack events callback: type=${body["type"]} eventId=${body["event_id"]}" }
         return challengeHandler.handle(body) ?: eventRequestHandler.handle(body)
     }
 }

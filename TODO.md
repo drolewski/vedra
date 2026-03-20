@@ -21,3 +21,19 @@
 1. Logger
 2. Konfiguracja serwera aplikacji :)
 3. Metryki?
+
+
+---
+Slack
+* Jak zbierać dane z kanałów?
+  * może wiadomości pisane
+* Jak odpowiadać na pytania?
+  * może wiadomości z tagiem @Vedra 
+  * może na odpowiednio skonfigurowanych kanałach?
+* Kiedy pytać o feedback
+  * przy każdej odpowiedzi
+  * przy każdej odpowiedzi, która została wygenerowana przez AI
+* Jak zbierać odpowiedzi ekspertów
+  * jako wiadomości z kanałów?
+* Jak działa apka zainstalowana na profilu firmowym?
+  * Czy jest dostępna na wszystkich kanałach
