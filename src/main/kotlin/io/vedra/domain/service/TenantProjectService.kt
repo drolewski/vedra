@@ -88,6 +88,7 @@ class TenantProjectService(
         tenantId: UUID,
         name: String,
         description: String? = null,
+        industry: String? = null,
         isGeneral: Boolean = false,
     ): CreateResult {
         val existing = tenantProjectRepository.findByTenantIdAndName(tenantId, name)
@@ -100,6 +101,7 @@ class TenantProjectService(
                 tenantId = tenantId,
                 name = name,
                 description = description,
+                industry = industry,
                 isGeneral = isGeneral,
             )
         val saved = tenantProjectRepository.save(project)

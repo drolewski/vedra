@@ -67,6 +67,21 @@ tasks.test {
         showStackTraces = true
         exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
     }
+
+    afterSuite(
+        KotlinClosure2({ _: TestDescriptor, result: TestResult ->
+            if (result.testCount > 0L) {
+                println("")
+                println("=".repeat(50))
+                println("TEST SUMMARY")
+                println("  Total:   ${result.testCount}")
+                println("  Passed:  ${result.successfulTestCount}")
+                println("  Failed:  ${result.failedTestCount}")
+                println("  Skipped: ${result.skippedTestCount}")
+                println("=".repeat(50))
+            }
+        }),
+    )
 }
 
 ktlint {

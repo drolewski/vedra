@@ -22,6 +22,8 @@ data class TenantProject(
     val name: String,
     @Column(columnDefinition = "TEXT")
     val description: String? = null,
+    @Column(length = 100)
+    val industry: String? = null,
     @Column(name = "is_general", nullable = false)
     val isGeneral: Boolean = false,
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -40,5 +42,5 @@ data class TenantProject(
 
     override fun hashCode(): Int = id?.hashCode() ?: 0
 
-    override fun toString(): String = "TenantProject(id=$id, name=$name, isGeneral=$isGeneral)"
+    override fun toString(): String = "TenantProject(id=$id, name=$name, industry=$industry, isGeneral=$isGeneral)"
 }

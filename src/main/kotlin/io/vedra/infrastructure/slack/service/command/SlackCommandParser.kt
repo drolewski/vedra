@@ -17,16 +17,23 @@ class SlackCommandParser {
         text: String,
         channelId: String,
         workspaceId: String,
+        triggerId: String,
     ): Any {
-        val parts = text.trim().split("\\s+".toRegex(), limit = 2)
-        val action = parts.getOrNull(0)?.lowercase()
-        val argument = parts.getOrNull(1) ?: ""
+        val action =
+            text
+                .trim()
+                .split("\\s+".toRegex(), limit = 2)
+                .getOrNull(0)
+                ?.lowercase()
 
-        logger.debug { "Parsing command: action=$action argument='$argument'" }
+        logger.debug { "Parsing command: action=$action" }
 
         return when (action) {
-            "create" -> CreateProjectCommand(workspaceId, channelId, argument)
-            "link" -> LinkProjectCommand(workspaceId, channelId, argument)
+            "create" -> CreateProjectCommand(triggerId, channelId, workspaceId)
+            "link" -> {
+                val projectName = text.trim().split("\\s+".toRegex(), limit = 2).getOrNull(1) ?: ""
+                LinkProjectCommand(workspaceId, channelId, projectName)
+            }
             "unlink" -> UnlinkProjectCommand(channelId)
             "list" -> ListProjectsCommand(workspaceId)
             "status" -> StatusCommand(channelId)

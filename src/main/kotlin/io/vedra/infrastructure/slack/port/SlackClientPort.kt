@@ -1,5 +1,7 @@
 package io.vedra.infrastructure.slack.port
 
+import com.slack.api.methods.request.views.ViewsOpenRequest
+
 interface SlackClientPort {
     fun postThreadMessage(
         channel: String,
@@ -19,4 +21,6 @@ interface SlackClientPort {
         messageTs: String,
         blocks: List<Map<String, Any>>,
     )
+
+    fun openModal(request: ViewsOpenRequest)
 }

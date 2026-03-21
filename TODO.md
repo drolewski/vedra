@@ -8,8 +8,6 @@
  + Przechowywanie wyników promptów zamiast wielokrotne calle do LLM :)
  + ? czy coś wokół tego jest potrzebne - przegadać z Gemini, czy widzi tu jakieś szanse i możliwości
 2. Dodanie kontekstu branżowego/domenowego i prompty
-3. Formatowanie odpowidzi dla Slacka - dekorator
-5. Dodanie obsługi tenanta
 6. Refactorki niezbędne
 7. Integracja z teams
 8. Integracja z Gemini dla lepszych promptów :)

@@ -21,7 +21,10 @@ class ListProjectsCommandHandler(
 
         val lines =
             projects.map { project ->
-                val label = if (project.isGeneral) "(ogólna)" else ""
+                val tags = mutableListOf<String>()
+                if (project.isGeneral) tags.add("ogólna")
+                project.industry?.let { tags.add("branża: $it") }
+                val label = if (tags.isNotEmpty()) "(${tags.joinToString(", ")})" else ""
                 "• *${project.name}* $label"
             }
 

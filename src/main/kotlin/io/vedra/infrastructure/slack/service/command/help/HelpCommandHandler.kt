@@ -10,7 +10,7 @@ class HelpCommandHandler : CommandHandler<HelpCommand> {
     override fun handle(command: HelpCommand): String =
         """
         *Komendy Vedra:*
-        • `/vedra create <projekt>` - Stwórz nowy projekt
+        • `/vedra create` - Otwórz formularz tworzenia projektu
         • `/vedra link <projekt>` - Powiąż kanał z projektem
         • `/vedra unlink` - Odłącz kanał od projektu
         • `/vedra list` - Pokaż dostępne projekty
