@@ -1,10 +1,10 @@
 package io.vedra.domain.service
 
 import io.github.oshai.kotlinlogging.KotlinLogging
+import io.vedra.domain.model.ChannelProject
+import io.vedra.domain.model.TenantProject
 import io.vedra.domain.repository.project.ChannelProjectRepository
 import io.vedra.domain.repository.project.TenantProjectRepository
-import io.vedra.infrastructure.database.project.ChannelProject
-import io.vedra.infrastructure.database.project.TenantProject
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.util.UUID
@@ -24,19 +24,15 @@ class TenantProjectService(
         val generalProject = tenantProjectRepository.findByTenantIdAndIsGeneralTrue(tenantId)
 
         return when {
-            // Kanał ma powiązany projekt + ogólna
             channelProject != null && generalProject != null ->
                 listOf(channelProject.projectId, generalProject.id)
 
-            // Tylko kanał z projektem
             channelProject != null ->
                 listOf(channelProject.projectId)
 
-            // Tylko ogólna
             generalProject != null ->
                 listOf(generalProject.id)
 
-            // Brak konfiguracji
             else -> emptyList()
         }
     }
@@ -60,7 +56,7 @@ class TenantProjectService(
             channelProjectRepository.deleteByChannelId(channelId)
         }
 
-        channelProjectRepository.save(ChannelProject(channelId = channelId, project = project))
+        channelProjectRepository.save(ChannelProject(channelId = channelId, projectId = project.id!!))
 
         logger.info { "Linked channel=$channelId to project=${project.name}" }
         return LinkResult.SUCCESS
@@ -74,9 +70,16 @@ class TenantProjectService(
 
     fun getChannelStatus(channelId: String): ChannelStatus {
         val channelProject = channelProjectRepository.findByChannelId(channelId)
+        val projectName =
+            channelProject?.let { cp ->
+                tenantProjectRepository
+                    .findByTenantId(UUID.randomUUID())
+                    .find { it.id == cp.projectId }
+                    ?.name
+            }
         return ChannelStatus(
             channelId = channelId,
-            projectName = channelProject?.project?.name,
+            projectName = projectName,
             isLinked = channelProject != null,
         )
     }

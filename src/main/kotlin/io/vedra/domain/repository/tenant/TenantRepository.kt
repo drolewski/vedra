@@ -1,11 +1,14 @@
 package io.vedra.domain.repository.tenant
 
-import io.vedra.infrastructure.database.tenant.Tenant
-import org.springframework.data.jpa.repository.JpaRepository
+import io.vedra.domain.model.Tenant
 import java.util.UUID
 
-interface TenantRepository : JpaRepository<Tenant, UUID> {
-    fun findBySlackWorkspaceId(slackWorkspaceId: String): Tenant?
+interface TenantRepository {
+    fun findBySlackWorkspaceId(workspaceId: String): Tenant?
 
     fun findByActiveTrue(): List<Tenant>
+
+    fun findById(id: UUID): Tenant?
+
+    fun save(tenant: Tenant): Tenant
 }

@@ -1,8 +1,8 @@
 package io.vedra.domain.service
 
 import io.github.oshai.kotlinlogging.KotlinLogging
+import io.vedra.domain.model.Industry
 import io.vedra.domain.repository.industry.IndustryRepository
-import io.vedra.infrastructure.database.industry.Industry
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.util.UUID

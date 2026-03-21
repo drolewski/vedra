@@ -4,15 +4,14 @@ import com.pgvector.PGvector
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
+import io.vedra.domain.model.AnswerSource
+import io.vedra.domain.model.KnowledgeEntry
+import io.vedra.domain.model.KnowledgeSourceType
 import io.vedra.domain.model.ResponseSource
 import io.vedra.domain.repository.knowledge.KnowledgeRepository
 import io.vedra.domain.repository.knowledge.SimilarityResultProjection
 import io.vedra.infrastructure.chat.LLMPort
-import io.vedra.infrastructure.database.knowledge.AnswerSource
-import io.vedra.infrastructure.database.knowledge.KnowledgeEntry
-import io.vedra.infrastructure.database.knowledge.KnowledgeSourceType
 import io.vedra.infrastructure.embedding.EmbeddingPort
-import java.util.Optional
 import java.util.UUID
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -23,11 +22,9 @@ class KnowledgeServiceTest {
     private val llmPort: LLMPort = mockk()
     private val service = KnowledgeService(knowledgeRepository, embeddingPort, llmPort)
 
-    private val testEmbedding = PGvector(FloatArray(768) { 0.1f })
-
     init {
-        every { embeddingPort.embed(any()) } returns testEmbedding
-        every { knowledgeRepository.save<KnowledgeEntry>(any()) } answers { firstArg() }
+        every { embeddingPort.embed(any()) } returns PGvector(FloatArray(768) { 0.1f })
+        every { knowledgeRepository.save(any()) } answers { firstArg() }
     }
 
     @Test
@@ -48,7 +45,7 @@ class KnowledgeServiceTest {
                     score = 0.92,
                 ),
             )
-        every { knowledgeRepository.findById(entryId) } returns Optional.of(entry)
+        every { knowledgeRepository.findById(entryId) } returns entry
 
         val result = service.answerQuestion("Jakie jest prawo Ohma?")
 
@@ -189,12 +186,11 @@ class KnowledgeServiceTest {
                     score = 0.90,
                 ),
             )
-        every { knowledgeRepository.findById(entryId) } returns Optional.of(entry)
+        every { knowledgeRepository.findById(entryId) } returns entry
 
         service.answerQuestion("Test?")
 
-        assertEquals(1, entry.usageCount)
-        verify { knowledgeRepository.save(entry) }
+        verify { knowledgeRepository.save(match { it.usageCount == 1 }) }
     }
 
     @Test
@@ -215,13 +211,6 @@ class KnowledgeServiceTest {
                 ),
             )
         every { llmPort.generate(any(), any()) } returns "AI answer"
-        every {
-            knowledgeRepository.save(
-                match {
-                    it.answerSource == AnswerSource.AI_GENERATED && !it.accepted
-                },
-            )
-        } returns knowledgeEntry(UUID.randomUUID())
 
         service.answerQuestion("Test?")
 
@@ -312,7 +301,7 @@ class KnowledgeServiceTest {
                     score = 0.88,
                 ),
             )
-        every { knowledgeRepository.findById(acceptedId) } returns Optional.of(entry)
+        every { knowledgeRepository.findById(acceptedId) } returns entry
 
         val result = service.answerQuestion("Pytanie?")
 
@@ -328,6 +317,5 @@ class KnowledgeServiceTest {
             source = KnowledgeSourceType.FAQ,
             content = "Test",
             answer = "Answer",
-            embedding = testEmbedding,
         )
 }

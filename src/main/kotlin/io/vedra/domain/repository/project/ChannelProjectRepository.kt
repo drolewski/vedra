@@ -1,10 +1,11 @@
 package io.vedra.domain.repository.project
 
-import io.vedra.infrastructure.database.project.ChannelProject
-import org.springframework.data.jpa.repository.JpaRepository
+import io.vedra.domain.model.ChannelProject
 
-interface ChannelProjectRepository : JpaRepository<ChannelProject, String> {
+interface ChannelProjectRepository {
     fun findByChannelId(channelId: String): ChannelProject?
+
+    fun save(channelProject: ChannelProject): ChannelProject
 
     fun deleteByChannelId(channelId: String)
 }

@@ -1,8 +1,8 @@
 package io.vedra.domain.service
 
 import io.github.oshai.kotlinlogging.KotlinLogging
+import io.vedra.domain.model.Tenant
 import io.vedra.domain.repository.tenant.TenantRepository
-import io.vedra.infrastructure.database.tenant.Tenant
 import org.springframework.stereotype.Service
 import java.util.UUID
 
@@ -21,9 +21,8 @@ class TenantService(
             ?: throw IllegalStateException("No active tenants found")
 
     fun getTenantById(tenantId: UUID): Tenant =
-        tenantRepository
-            .findById(tenantId)
-            .orElseThrow { TenantNotFoundException(tenantId.toString()) }
+        tenantRepository.findById(tenantId)
+            ?: throw TenantNotFoundException(tenantId.toString())
 
     fun createTenant(
         name: String,

@@ -1,10 +1,9 @@
 package io.vedra.domain.repository.project
 
-import io.vedra.infrastructure.database.project.TenantProject
-import org.springframework.data.jpa.repository.JpaRepository
+import io.vedra.domain.model.TenantProject
 import java.util.UUID
 
-interface TenantProjectRepository : JpaRepository<TenantProject, UUID> {
+interface TenantProjectRepository {
     fun findByTenantId(tenantId: UUID): List<TenantProject>
 
     fun findByTenantIdAndIsGeneralTrue(tenantId: UUID): TenantProject?
@@ -13,4 +12,6 @@ interface TenantProjectRepository : JpaRepository<TenantProject, UUID> {
         tenantId: UUID,
         name: String,
     ): TenantProject?
+
+    fun save(project: TenantProject): TenantProject
 }

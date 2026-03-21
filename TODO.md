@@ -7,7 +7,6 @@
  + konfiguracji tenanta (czy chce korzytstać z LLM, czy chce udostępniać swoje informacje innym tenantom z branży)
  + Przechowywanie wyników promptów zamiast wielokrotne calle do LLM :)
  + ? czy coś wokół tego jest potrzebne - przegadać z Gemini, czy widzi tu jakieś szanse i możliwości
-2. Dodanie kontekstu branżowego/domenowego i prompty
 6. Refactorki niezbędne
 7. Integracja z teams
 8. Integracja z Gemini dla lepszych promptów :)
@@ -15,11 +14,11 @@
 10. Jeżeli odpowiedź okazała się niepomocna, 
   to poproszenie o pomoc osoby doświadczonej 
   i możliwość zauploadowania jej odpowiedzi do kontekstu
+
 -----
 1. Logger
 2. Konfiguracja serwera aplikacji :)
 3. Metryki?
-
 
 ---
 Slack
@@ -35,3 +34,30 @@ Slack
   * jako wiadomości z kanałów?
 * Jak działa apka zainstalowana na profilu firmowym?
   * Czy jest dostępna na wszystkich kanałach
+
+---
+# Pakiety -> Wycenić
+## Free
+- 3 projekty maksymalnie 3 branż + general
+- Analiza 500 wiadomości miesięcznie na kanałach 
+- Odpowiedź na 100 pytań miesiecznie
+
+## Pakiet I
+- 10 projektów maksymalnie 3 branż + general
+- Analiza 1000 wiadomości miesięcznie na kanałach
+- Odpowiedź na 1000 pytań miesiecznie
+
+## Pakiet II
+- 50 projektów maksymalnie 10 branż + general
+- Analiza 1000 wiadomości miesięcznie na kanałach
+- Odpowiedź na 1000 pytań miesiecznie
+
+## Pakiet III
+- 50 projektów maksymalnie 50 branż + general
+- Analiza 10000 wiadomości miesięcznie na kanałach
+- Odpowiedź na 10000 pytań miesiecznie
+
+## Enterprise
+- 100 projektów maksymalnie 100 branż + general
+- Analiza 1000000 wiadomości miesięcznie na kanałach
+- Odpowiedź na 1000000 pytań miesiecznie

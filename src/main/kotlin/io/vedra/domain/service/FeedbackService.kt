@@ -1,8 +1,8 @@
 package io.vedra.domain.service
 
+import io.vedra.domain.model.FeedbackMapping
 import io.vedra.domain.repository.feedback.FeedbackMappingRepository
 import io.vedra.domain.repository.knowledge.KnowledgeRepository
-import io.vedra.infrastructure.database.feedback.FeedbackMapping
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.util.UUID
@@ -36,17 +36,17 @@ class FeedbackService(
         userId: String,
         vote: String,
     ): VoteResult {
-        val mapping = feedbackMappingRepository.findById(feedbackId).orElse(null) ?: return VoteResult.NOT_FOUND
+        val mapping = feedbackMappingRepository.findById(feedbackId) ?: return VoteResult.NOT_FOUND
 
         if (mapping.votes.containsKey(userId)) return VoteResult.NO_CHANGE
 
-        mapping.votes = mapping.votes + (userId to vote)
-        feedbackMappingRepository.save(mapping)
+        val updatedMapping = mapping.copy(votes = mapping.votes + (userId to vote))
+        feedbackMappingRepository.save(updatedMapping)
 
         val entries = knowledgeRepository.findByIds(mapping.entryIds.map { UUID.fromString(it) })
         entries.forEach { entry ->
-            entry.qualityScore = calculateScore(mapping.votes)
-            knowledgeRepository.save(entry)
+            val updatedEntry = entry.copy(qualityScore = calculateScore(updatedMapping.votes))
+            knowledgeRepository.save(updatedEntry)
         }
 
         return VoteResult.NEW

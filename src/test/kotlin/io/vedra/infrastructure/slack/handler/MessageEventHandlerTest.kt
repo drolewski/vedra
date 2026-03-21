@@ -3,10 +3,10 @@ package io.vedra.infrastructure.slack.handler
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
+import io.vedra.domain.model.Tenant
 import io.vedra.domain.service.TenantProjectService
 import io.vedra.domain.service.TenantService
 import io.vedra.infrastructure.database.outbox.OutboxEvent
-import io.vedra.infrastructure.database.tenant.Tenant
 import io.vedra.infrastructure.outbox.service.OutboxService
 import io.vedra.infrastructure.slack.model.SlackEvent
 import java.util.UUID

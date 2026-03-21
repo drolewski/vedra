@@ -1,14 +1,14 @@
 package io.vedra.domain.service
 
 import io.vedra.domain.model.AnswerResult
+import io.vedra.domain.model.AnswerSource
+import io.vedra.domain.model.KnowledgeEntry
+import io.vedra.domain.model.KnowledgeSourceType
 import io.vedra.domain.model.ResponseSource
 import io.vedra.domain.prompt.Prompts
 import io.vedra.domain.repository.knowledge.KnowledgeRepository
 import io.vedra.domain.repository.knowledge.SimilarityResultProjection
 import io.vedra.infrastructure.chat.LLMPort
-import io.vedra.infrastructure.database.knowledge.AnswerSource
-import io.vedra.infrastructure.database.knowledge.KnowledgeEntry
-import io.vedra.infrastructure.database.knowledge.KnowledgeSourceType
 import io.vedra.infrastructure.embedding.EmbeddingPort
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -67,7 +67,6 @@ class KnowledgeService(
         answer: String,
         projectId: UUID?,
     ): KnowledgeEntry {
-        val embedding = embeddingPort.embed(question)
         val entry =
             KnowledgeEntry(
                 tenantId = TENANT_ID,
@@ -75,7 +74,6 @@ class KnowledgeService(
                 source = KnowledgeSourceType.FAQ,
                 content = question,
                 answer = answer,
-                embedding = embedding,
                 answerSource = AnswerSource.USER_VERIFIED,
             )
         return knowledgeRepository.save(entry)
@@ -84,9 +82,9 @@ class KnowledgeService(
     private fun answerFromKnowledgeBase(entries: List<SimilarityResultProjection>): AnswerResult {
         val best = entries.first()
 
-        knowledgeRepository.findById(best.id).ifPresent { entry ->
-            entry.markUsed()
-            knowledgeRepository.save(entry)
+        knowledgeRepository.findById(best.id)?.let { entry ->
+            val updated = entry.copy(usageCount = entry.usageCount + 1)
+            knowledgeRepository.save(updated)
         }
 
         return AnswerResult(
@@ -167,7 +165,6 @@ class KnowledgeService(
         projectId: UUID? = null,
     ): KnowledgeEntry? =
         try {
-            val embedding = embeddingPort.embed(question)
             val entry =
                 KnowledgeEntry(
                     tenantId = TENANT_ID,
@@ -175,7 +172,6 @@ class KnowledgeService(
                     source = KnowledgeSourceType.FAQ,
                     content = question,
                     answer = answer,
-                    embedding = embedding,
                     answerSource = AnswerSource.AI_GENERATED,
                     accepted = false,
                 )

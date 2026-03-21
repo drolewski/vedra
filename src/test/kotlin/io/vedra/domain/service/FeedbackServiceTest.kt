@@ -1,30 +1,25 @@
 package io.vedra.domain.service
 
-import com.pgvector.PGvector
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
+import io.vedra.domain.model.FeedbackMapping
+import io.vedra.domain.model.KnowledgeEntry
+import io.vedra.domain.model.KnowledgeSourceType
 import io.vedra.domain.repository.feedback.FeedbackMappingRepository
 import io.vedra.domain.repository.knowledge.KnowledgeRepository
-import io.vedra.infrastructure.database.feedback.FeedbackMapping
-import io.vedra.infrastructure.database.knowledge.KnowledgeEntry
-import io.vedra.infrastructure.database.knowledge.KnowledgeSourceType
-import java.util.Optional
 import java.util.UUID
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertTrue
 
 class FeedbackServiceTest {
     private val knowledgeRepository: KnowledgeRepository = mockk(relaxed = true)
     private val feedbackMappingRepository: FeedbackMappingRepository = mockk(relaxed = true)
     private val service = FeedbackService(knowledgeRepository, feedbackMappingRepository)
 
-    private val testEmbedding = PGvector(FloatArray(768) { 0.1f })
-
     init {
-        every { knowledgeRepository.save<KnowledgeEntry>(any()) } answers { firstArg() }
-        every { feedbackMappingRepository.save<FeedbackMapping>(any()) } answers { firstArg() }
+        every { knowledgeRepository.save(any()) } answers { firstArg() }
+        every { feedbackMappingRepository.save(any()) } answers { firstArg() }
     }
 
     @Test
@@ -33,14 +28,13 @@ class FeedbackServiceTest {
         val entry = knowledgeEntry(entryId, qualityScore = 0.5f)
         val mapping = FeedbackMapping(id = "fb-1", channel = "C123", messageTs = "222.0", entryIds = listOf(entryId.toString()))
 
-        every { feedbackMappingRepository.findById("fb-1") } returns Optional.of(mapping)
+        every { feedbackMappingRepository.findById("fb-1") } returns mapping
         every { knowledgeRepository.findByIds(listOf(entryId)) } returns listOf(entry)
 
         val result = service.applyVote("fb-1", "U001", "positive")
 
         assertEquals(FeedbackService.VoteResult.NEW, result)
-        assertTrue(entry.qualityScore > 0.5f)
-        verify { knowledgeRepository.save(entry) }
+        verify { knowledgeRepository.save(match { it.qualityScore > 0.5f }) }
     }
 
     @Test
@@ -49,14 +43,13 @@ class FeedbackServiceTest {
         val entry = knowledgeEntry(entryId, qualityScore = 0.5f)
         val mapping = FeedbackMapping(id = "fb-1", channel = "C123", messageTs = "222.0", entryIds = listOf(entryId.toString()))
 
-        every { feedbackMappingRepository.findById("fb-1") } returns Optional.of(mapping)
+        every { feedbackMappingRepository.findById("fb-1") } returns mapping
         every { knowledgeRepository.findByIds(listOf(entryId)) } returns listOf(entry)
 
         val result = service.applyVote("fb-1", "U001", "negative")
 
         assertEquals(FeedbackService.VoteResult.NEW, result)
-        assertTrue(entry.qualityScore < 0.5f)
-        verify { knowledgeRepository.save(entry) }
+        verify { knowledgeRepository.save(match { it.qualityScore < 0.5f }) }
     }
 
     @Test
@@ -71,7 +64,7 @@ class FeedbackServiceTest {
                 votes = mapOf("U001" to "positive"),
             )
 
-        every { feedbackMappingRepository.findById("fb-1") } returns Optional.of(mapping)
+        every { feedbackMappingRepository.findById("fb-1") } returns mapping
 
         val result = service.applyVote("fb-1", "U001", "negative")
 
@@ -81,7 +74,7 @@ class FeedbackServiceTest {
 
     @Test
     fun `should do nothing when mapping not found`() {
-        every { feedbackMappingRepository.findById("fb-999") } returns Optional.empty()
+        every { feedbackMappingRepository.findById("fb-999") } returns null
 
         service.applyVote("fb-999", "U001", "positive")
 
@@ -95,13 +88,12 @@ class FeedbackServiceTest {
         val entry = knowledgeEntry(entryId, qualityScore = 0.5f)
         val mapping = FeedbackMapping(id = "fb-1", channel = "C123", messageTs = "222.0", entryIds = listOf(entryId.toString()))
 
-        every { feedbackMappingRepository.findById("fb-1") } returns Optional.of(mapping)
+        every { feedbackMappingRepository.findById("fb-1") } returns mapping
         every { knowledgeRepository.findByIds(listOf(entryId)) } returns listOf(entry)
 
         service.applyVote("fb-1", "U001", "positive")
 
-        // 1 positive out of 1: (10*0.5 + 1) / (10 + 1) = 6/11 ≈ 0.545
-        assertEquals(0.545f, entry.qualityScore, 0.01f)
+        verify { knowledgeRepository.save(match { kotlin.math.abs(it.qualityScore - 0.545f) < 0.01f }) }
     }
 
     @Test
@@ -118,13 +110,12 @@ class FeedbackServiceTest {
                 votes = votes,
             )
 
-        every { feedbackMappingRepository.findById("fb-1") } returns Optional.of(mapping)
+        every { feedbackMappingRepository.findById("fb-1") } returns mapping
         every { knowledgeRepository.findByIds(listOf(entryId)) } returns listOf(entry)
 
         service.applyVote("fb-1", "U51", "positive")
 
-        // 51 positive out of 51: (10*0.5 + 51) / (10 + 51) = 56/61 ≈ 0.918
-        assertEquals(0.918f, entry.qualityScore, 0.01f)
+        verify { knowledgeRepository.save(match { kotlin.math.abs(it.qualityScore - 0.918f) < 0.01f }) }
     }
 
     @Test
@@ -141,15 +132,12 @@ class FeedbackServiceTest {
                 votes = votes,
             )
 
-        every { feedbackMappingRepository.findById("fb-1") } returns Optional.of(mapping)
+        every { feedbackMappingRepository.findById("fb-1") } returns mapping
         every { knowledgeRepository.findByIds(listOf(entryId)) } returns listOf(entry)
 
         service.applyVote("fb-1", "U21", "positive")
 
-        // 16 positive, 5 negative, 21 total
-        // netVotes = 16 - 5 = 11
-        // (10*0.5 + 11) / (10 + 21) = 16/31 ≈ 0.516
-        assertEquals(0.516f, entry.qualityScore, 0.01f)
+        verify { knowledgeRepository.save(match { kotlin.math.abs(it.qualityScore - 0.516f) < 0.01f }) }
     }
 
     @Test
@@ -183,7 +171,6 @@ class FeedbackServiceTest {
         source = KnowledgeSourceType.FAQ,
         content = "Test",
         answer = "Answer",
-        embedding = testEmbedding,
         qualityScore = qualityScore,
     )
 }
