@@ -1,7 +1,13 @@
 # TODOS
 
 ## Testy E2E całego rozwiązania,
+* Czy wywołanie jakiejkolwiek operacji tworzy tenanta?
+* Czy działa dodawanie industry PER TENANT
+* Czy działają operacje commandy slackowe
+* Czy działa feedback?
+* Czy wszystkie dane są zamknięte per tenant w odpowiedni sposóļ?
 ## Przejście po kodzie i ręczne refactory zanim dalej wpuszczę Agenta
+* Refaktoryzacja i enkapsulacja procesów biznesowych
 
 1. Poprawa procesu zbierania pytań/odpowiedzi 
  + normalizacja danych 
