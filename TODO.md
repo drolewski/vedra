@@ -1,5 +1,8 @@
 # TODOS
 
+## Testy E2E całego rozwiązania,
+## Przejście po kodzie i ręczne refactory zanim dalej wpuszczę Agenta
+
 1. Poprawa procesu zbierania pytań/odpowiedzi 
  + normalizacja danych 
  + przechowywanie odpowiedzi

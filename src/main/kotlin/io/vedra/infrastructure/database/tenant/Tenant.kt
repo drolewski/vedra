@@ -18,8 +18,8 @@ data class Tenant(
     val id: UUID? = null,
     @Column(nullable = false, length = 200)
     val name: String,
-    @Column(name = "slack_workspace_id", length = 50, unique = true)
-    val slackWorkspaceId: String? = null,
+    @Column(name = "external_id", length = 50, unique = true)
+    val externalId: String? = null,
     @Column(nullable = false)
     val active: Boolean = true,
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -37,5 +37,5 @@ data class Tenant(
 
     override fun hashCode(): Int = id?.hashCode() ?: 0
 
-    override fun toString(): String = "Tenant(id=$id, name=$name, slackWorkspaceId=$slackWorkspaceId)"
+    override fun toString(): String = "Tenant(id=$id, name=$name, externalId=$externalId)"
 }

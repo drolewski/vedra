@@ -9,7 +9,7 @@ import io.vedra.domain.model.Tenant as DomainTenant
 class JpaTenantRepository(
     private val springDataRepo: SpringDataTenantRepository,
 ) : TenantRepository {
-    override fun findBySlackWorkspaceId(workspaceId: String): DomainTenant? = springDataRepo.findBySlackWorkspaceId(workspaceId)?.toDomain()
+    override fun findByExternalId(externalId: String): DomainTenant? = springDataRepo.findByExternalId(externalId)?.toDomain()
 
     override fun findByActiveTrue(): List<DomainTenant> = springDataRepo.findByActiveTrue().map { it.toDomain() }
 

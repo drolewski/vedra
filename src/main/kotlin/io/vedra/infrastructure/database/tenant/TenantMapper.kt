@@ -6,7 +6,7 @@ fun Tenant.toDomain(): DomainTenant =
     DomainTenant(
         id = this.id,
         name = this.name,
-        slackWorkspaceId = this.slackWorkspaceId,
+        externalId = this.externalId,
         active = this.active,
         createdAt = this.createdAt,
     )
@@ -15,6 +15,6 @@ fun DomainTenant.toEntity(): Tenant =
     Tenant(
         id = this.id,
         name = this.name,
-        slackWorkspaceId = this.slackWorkspaceId,
+        externalId = this.externalId,
         active = this.active,
     )

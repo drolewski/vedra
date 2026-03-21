@@ -4,7 +4,7 @@ import org.springframework.data.jpa.repository.JpaRepository
 import java.util.UUID
 
 interface SpringDataTenantRepository : JpaRepository<Tenant, UUID> {
-    fun findBySlackWorkspaceId(slackWorkspaceId: String): Tenant?
+    fun findByExternalId(externalId: String): Tenant?
 
     fun findByActiveTrue(): List<Tenant>
 }

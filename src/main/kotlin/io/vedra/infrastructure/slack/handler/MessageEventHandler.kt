@@ -36,7 +36,7 @@ class MessageEventHandler(
         val tenant =
             try {
                 if (workspaceId != null) {
-                    tenantService.resolveTenantByWorkspace(workspaceId)
+                    tenantService.resolveByExternalId(workspaceId)
                 } else {
                     tenantService.getDefaultTenant()
                 }

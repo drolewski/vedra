@@ -29,7 +29,7 @@ class MessageEventHandlerTest {
     init {
         every { tenantProjectService.getProjectIdsForChannel(any(), any()) } returns listOf(null)
         every { tenantService.getDefaultTenant() } returns testTenant
-        every { tenantService.resolveTenantByWorkspace(any()) } returns testTenant
+        every { tenantService.resolveByExternalId(any()) } returns testTenant
     }
 
     @Test

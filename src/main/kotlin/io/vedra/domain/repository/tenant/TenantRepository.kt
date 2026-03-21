@@ -4,7 +4,7 @@ import io.vedra.domain.model.Tenant
 import java.util.UUID
 
 interface TenantRepository {
-    fun findBySlackWorkspaceId(workspaceId: String): Tenant?
+    fun findByExternalId(externalId: String): Tenant?
 
     fun findByActiveTrue(): List<Tenant>
 

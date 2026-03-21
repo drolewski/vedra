@@ -12,9 +12,14 @@ private val logger = KotlinLogging.logger {}
 class TenantService(
     private val tenantRepository: TenantRepository,
 ) {
-    fun resolveTenantByWorkspace(workspaceId: String): Tenant =
-        tenantRepository.findBySlackWorkspaceId(workspaceId)
-            ?: throw TenantNotFoundException(workspaceId)
+    fun resolveByExternalId(externalId: String): Tenant =
+        tenantRepository.findByExternalId(externalId)
+            ?: createDefaultTenant(externalId)
+
+    private fun createDefaultTenant(externalId: String): Tenant {
+        logger.info { "Creating new tenant for externalId=$externalId" }
+        return tenantRepository.save(Tenant(name = "Nowy klient"))
+    }
 
     fun getDefaultTenant(): Tenant =
         tenantRepository.findByActiveTrue().firstOrNull()
@@ -26,12 +31,12 @@ class TenantService(
 
     fun createTenant(
         name: String,
-        slackWorkspaceId: String? = null,
+        externalId: String? = null,
     ): Tenant {
         val tenant =
             Tenant(
                 name = name,
-                slackWorkspaceId = slackWorkspaceId,
+                externalId = externalId,
             )
         return tenantRepository.save(tenant)
     }
