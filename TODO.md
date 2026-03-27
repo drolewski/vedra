@@ -1,14 +1,6 @@
 # TODOS
 
-## Testy E2E całego rozwiązania,
-* Czy wywołanie jakiejkolwiek operacji tworzy tenanta?
-* Czy działa dodawanie industry PER TENANT
-* Czy działają operacje commandy slackowe
-* Czy działa feedback?
-* Czy wszystkie dane są zamknięte per tenant w odpowiedni sposóļ?
-## Przejście po kodzie i ręczne refactory zanim dalej wpuszczę Agenta
-* Refaktoryzacja i enkapsulacja procesów biznesowych
-
+## Next steps
 * Dodanie wiadomości powinno zbierać dane do RAGa, 
   zapisywanie do projektów w ramach tenant
 * Wywołanie wiadomości z @Vedra powinno odpowiadać na pytania
@@ -22,11 +14,17 @@
 * Przechowywanie wyników LLM zamiast wielokrotnych calli
 * Testy E2e
 
-### Dalej
+## Dalej
 7. Integracja z teams
 8. Integracja z Gemini dla lepszych promptów :)
 9. Zbieranie danych z dokumentów fizycznych
 
+## Testy E2E całego rozwiązania,
+* Czy wywołanie jakiejkolwiek operacji tworzy tenanta?
+* Czy działa dodawanie industry PER TENANT
+* Czy działają operacje commandy slackowe
+* Czy działa feedback?
+* Czy wszystkie dane są zamknięte per tenant w odpowiedni sposóļ?
 -----
 1. Logger
 2. Konfiguracja serwera aplikacji :)
