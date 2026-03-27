@@ -9,6 +9,7 @@ import io.vedra.domain.service.TenantService
 import io.vedra.infrastructure.database.outbox.OutboxEvent
 import io.vedra.infrastructure.outbox.service.OutboxService
 import io.vedra.infrastructure.slack.model.SlackEvent
+import io.vedra.infrastructure.slack.port.SlackClientPort
 import java.util.UUID
 import kotlin.test.Test
 import kotlin.test.assertFalse
@@ -18,7 +19,8 @@ class MessageEventHandlerTest {
     private val outboxService: OutboxService = mockk(relaxed = true)
     private val tenantProjectService: TenantProjectService = mockk()
     private val tenantService: TenantService = mockk()
-    private val handler = MessageEventHandler(outboxService, tenantProjectService, tenantService)
+    private val slackClient: SlackClientPort = mockk()
+    private val handler = MessageEventHandler(outboxService, tenantProjectService, tenantService, slackClient)
 
     private val testTenant =
         Tenant(
@@ -28,8 +30,8 @@ class MessageEventHandlerTest {
 
     init {
         every { tenantProjectService.getProjectIdsForChannel(any(), any()) } returns listOf(null)
-        every { tenantService.getDefaultTenant() } returns testTenant
-        every { tenantService.resolveByExternalId(any()) } returns testTenant
+        every { tenantService.resolveByExternalId(any(), any()) } returns testTenant
+        every { slackClient.getTeamName(any()) } returns "Test Team"
     }
 
     @Test

@@ -4,7 +4,6 @@ import io.github.oshai.kotlinlogging.KotlinLogging
 import io.vedra.domain.model.Tenant
 import io.vedra.domain.repository.tenant.TenantRepository
 import org.springframework.stereotype.Service
-import java.util.UUID
 
 private val logger = KotlinLogging.logger {}
 
@@ -12,36 +11,26 @@ private val logger = KotlinLogging.logger {}
 class TenantService(
     private val tenantRepository: TenantRepository,
 ) {
-    fun resolveByExternalId(externalId: String): Tenant =
-        tenantRepository.findByExternalId(externalId)
-            ?: createDefaultTenant(externalId)
+    fun resolveByExternalId(
+        externalId: String?,
+        workspaceName: String?,
+    ): Tenant {
+        if (externalId.isNullOrBlank()) {
+            throw TenantExternalIdMissingException()
+        }
 
-    private fun createDefaultTenant(externalId: String): Tenant {
-        logger.info { "Creating new tenant for externalId=$externalId" }
-        return tenantRepository.save(Tenant(name = "Nowy klient"))
+        return tenantRepository.findByExternalId(externalId)
+            ?: createTenant(externalId, workspaceName)
     }
 
-    fun getDefaultTenant(): Tenant =
-        tenantRepository.findByActiveTrue().firstOrNull()
-            ?: throw IllegalStateException("No active tenants found")
-
-    fun getTenantById(tenantId: UUID): Tenant =
-        tenantRepository.findById(tenantId)
-            ?: throw TenantNotFoundException(tenantId.toString())
-
-    fun createTenant(
-        name: String,
-        externalId: String? = null,
+    private fun createTenant(
+        externalId: String,
+        workspaceName: String?,
     ): Tenant {
-        val tenant =
-            Tenant(
-                name = name,
-                externalId = externalId,
-            )
-        return tenantRepository.save(tenant)
+        val name = workspaceName ?: externalId
+        logger.info { "Creating new tenant for externalId=$externalId name=$name" }
+        return tenantRepository.save(Tenant(name = name, externalId = externalId))
     }
 }
 
-class TenantNotFoundException(
-    val identifier: String,
-) : RuntimeException("Tenant not found: $identifier")
+class TenantExternalIdMissingException : RuntimeException("Missing external ID for tenant resolution")

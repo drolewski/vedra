@@ -23,4 +23,6 @@ interface SlackClientPort {
     )
 
     fun openModal(request: ViewsOpenRequest)
+
+    fun getTeamName(teamId: String): String?
 }

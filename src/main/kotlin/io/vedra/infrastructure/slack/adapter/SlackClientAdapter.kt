@@ -3,9 +3,12 @@ package io.vedra.infrastructure.slack.adapter
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.slack.api.bolt.App
 import com.slack.api.methods.request.views.ViewsOpenRequest
+import io.github.oshai.kotlinlogging.KotlinLogging
 import io.vedra.infrastructure.slack.exception.SlackApiException
 import io.vedra.infrastructure.slack.port.SlackClientPort
 import org.springframework.stereotype.Component
+
+private val logger = KotlinLogging.logger {}
 
 @Component
 class SlackClientAdapter(
@@ -71,4 +74,13 @@ class SlackClientAdapter(
             throw SlackApiException("Failed to open modal", e)
         }
     }
+
+    override fun getTeamName(teamId: String): String? =
+        try {
+            val response = slackApp.client().teamInfo { req -> req.team(teamId) }
+            response.team.name
+        } catch (e: Exception) {
+            logger.warn(e) { "Failed to get team name for teamId=$teamId" }
+            null
+        }
 }

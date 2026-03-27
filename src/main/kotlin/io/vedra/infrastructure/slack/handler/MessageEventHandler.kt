@@ -2,11 +2,13 @@ package io.vedra.infrastructure.slack.handler
 
 import com.slack.api.model.event.MessageEvent
 import io.github.oshai.kotlinlogging.KotlinLogging
+import io.vedra.domain.service.TenantExternalIdMissingException
 import io.vedra.domain.service.TenantProjectService
 import io.vedra.domain.service.TenantService
 import io.vedra.infrastructure.outbox.service.OutboxService
 import io.vedra.infrastructure.slack.model.SlackEvent
 import io.vedra.infrastructure.slack.model.SlackEventHandler
+import io.vedra.infrastructure.slack.port.SlackClientPort
 import io.vedra.infrastructure.slack.service.outbox.SlackMessageAnswerHandler
 import org.springframework.stereotype.Component
 
@@ -17,6 +19,7 @@ class MessageEventHandler(
     private val outboxService: OutboxService,
     private val tenantProjectService: TenantProjectService,
     private val tenantService: TenantService,
+    private val slackClient: SlackClientPort,
 ) : SlackEventHandler {
     override fun supports(event: SlackEvent): Boolean = event.type == MessageEvent.TYPE_NAME
 
@@ -35,14 +38,11 @@ class MessageEventHandler(
 
         val tenant =
             try {
-                if (workspaceId != null) {
-                    tenantService.resolveByExternalId(workspaceId)
-                } else {
-                    tenantService.getDefaultTenant()
-                }
-            } catch (e: Exception) {
-                logger.error(e) { "Failed to resolve tenant for workspace=$workspaceId" }
-                tenantService.getDefaultTenant()
+                val teamName = workspaceId?.let { slackClient.getTeamName(it) }
+                tenantService.resolveByExternalId(workspaceId, teamName)
+            } catch (e: TenantExternalIdMissingException) {
+                logger.error(e) { "Cannot resolve tenant: missing workspaceId for channel=$channel" }
+                return
             }
 
         val projectIds = tenantProjectService.getProjectIdsForChannel(tenant.id!!, channel)

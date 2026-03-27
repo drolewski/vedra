@@ -2,7 +2,9 @@ package io.vedra.infrastructure.slack.service
 
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.vedra.domain.service.IndustryService
+import io.vedra.domain.service.TenantExternalIdMissingException
 import io.vedra.domain.service.TenantProjectService
+import io.vedra.domain.service.TenantService
 import io.vedra.infrastructure.outbox.service.OutboxService
 import io.vedra.infrastructure.slack.exception.SlackApiException
 import io.vedra.infrastructure.slack.exception.SlackPayloadException
@@ -10,7 +12,6 @@ import io.vedra.infrastructure.slack.model.dto.SlackInteractionPayload
 import io.vedra.infrastructure.slack.service.outbox.SlackFeedbackHandler.Companion.EVENT_TYPE
 import org.springframework.http.ResponseEntity
 import org.springframework.stereotype.Component
-import java.util.UUID
 
 private val logger = KotlinLogging.logger {}
 
@@ -20,6 +21,8 @@ class SlackInteractiveRequestHandler(
     private val slackMessageService: SlackMessageService,
     private val tenantProjectService: TenantProjectService,
     private val industryService: IndustryService,
+    private val tenantService: TenantService,
+    private val slackClient: io.vedra.infrastructure.slack.port.SlackClientPort,
 ) {
     fun handle(payload: Map<String, Any>): ResponseEntity<Any> {
         val type = payload["type"] as? String
@@ -81,15 +84,22 @@ class SlackInteractiveRequestHandler(
             return buildErrorResponse("Nazwa projektu jest wymagana.")
         }
 
-        val tenantId = UUID.nameUUIDFromBytes(teamId.toByteArray())
+        val tenant =
+            try {
+                val teamName = slackClient.getTeamName(teamId)
+                tenantService.resolveByExternalId(teamId, teamName)
+            } catch (e: TenantExternalIdMissingException) {
+                logger.error(e) { "Cannot resolve tenant: missing teamId" }
+                return buildErrorResponse("Błąd: Nie można zidentyfikować workspace.")
+            }
 
-        val industryName = resolveIndustryName(tenantId, industrySelectId, customIndustryName)
+        val industryName = resolveIndustryName(tenant.id!!, industrySelectId, customIndustryName)
 
-        logger.info { "Creating project from modal: name=$projectName industry=$industryName tenant=$tenantId" }
+        logger.info { "Creating project from modal: name=$projectName industry=$industryName tenant=${tenant.id}" }
 
         val result =
             tenantProjectService.createProject(
-                tenantId = tenantId,
+                tenantId = tenant.id,
                 name = projectName,
                 description = description,
                 industry = industryName,
@@ -113,22 +123,19 @@ class SlackInteractiveRequestHandler(
     }
 
     private fun resolveIndustryName(
-        tenantId: UUID,
+        tenantId: java.util.UUID,
         industrySelectId: String?,
         customIndustryName: String?,
     ): String? {
-        // Użytkownik wpisał nową branżę
         if (customIndustryName != null) {
             val industry = industryService.getOrCreateIndustry(tenantId, customIndustryName)
             return industry.name
         }
 
-        // Wybrano "Dodaj nową" ale nie wpisano nazwy
         if (industrySelectId == "new") {
             return null
         }
 
-        // Wybrano branżę z listy
         if (industrySelectId != null) {
             return try {
                 industryService
