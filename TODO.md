@@ -9,20 +9,23 @@
 ## Przejście po kodzie i ręczne refactory zanim dalej wpuszczę Agenta
 * Refaktoryzacja i enkapsulacja procesów biznesowych
 
-1. Poprawa procesu zbierania pytań/odpowiedzi 
- + normalizacja danych 
- + przechowywanie odpowiedzi
- + obsługa branży
- + konfiguracji tenanta (czy chce korzytstać z LLM, czy chce udostępniać swoje informacje innym tenantom z branży)
- + Przechowywanie wyników promptów zamiast wielokrotne calle do LLM :)
- + ? czy coś wokół tego jest potrzebne - przegadać z Gemini, czy widzi tu jakieś szanse i możliwości
-6. Refactorki niezbędne
+* Dodanie wiadomości powinno zbierać dane do RAGa, 
+  zapisywanie do projektów w ramach tenant
+* Wywołanie wiadomości z @Vedra powinno odpowiadać na pytania
+* Jeżeli odpowiedź okazała się niepomocna to:
+  * wywal ja z pamięci
+  * poproś o pomoc eksperta - wiadomośc zachęcająća i po odp. w wątku analiza kontekstowa i zapis do raga.
+* Czy MCP może jakoś pomóc w rozwiązaniu?
+* Usprawnienia kodu
+* normalizacja danych wejściowych i wyjściowych
+* obsługa branży projektowej w przechowywaniu projektowym
+* Przechowywanie wyników LLM zamiast wielokrotnych calli
+* Testy E2e
+
+### Dalej
 7. Integracja z teams
 8. Integracja z Gemini dla lepszych promptów :)
 9. Zbieranie danych z dokumentów fizycznych
-10. Jeżeli odpowiedź okazała się niepomocna, 
-  to poproszenie o pomoc osoby doświadczonej 
-  i możliwość zauploadowania jej odpowiedzi do kontekstu
 
 -----
 1. Logger
