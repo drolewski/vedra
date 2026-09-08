@@ -9,6 +9,6 @@ data class TenantProject(
     val name: String,
     val description: String? = null,
     val industry: String? = null,
-    val isGeneral: Boolean = false,
+    val visibility: ProjectVisibility = ProjectVisibility.PRIVATE,
     val createdAt: Instant = Instant.now(),
 )

@@ -8,6 +8,7 @@ import io.vedra.infrastructure.slack.exception.SlackApiException
 import io.vedra.infrastructure.slack.exception.SlackPayloadException
 import io.vedra.infrastructure.slack.model.dto.SlackInteractionPayload
 import io.vedra.infrastructure.slack.service.outbox.SlackFeedbackHandler.Companion.EVENT_TYPE
+import io.vedra.infrastructure.slack.service.outbox.SlackPromoteToPublicHandler
 import org.springframework.http.ResponseEntity
 import org.springframework.stereotype.Component
 import java.util.UUID
@@ -41,12 +42,14 @@ class SlackInteractiveRequestHandler(
             return ResponseEntity.ok().build()
         }
 
-        return processCreateProjectSubmission(view, teamId)
+        val channelId = (view["private_metadata"] as? String)?.takeIf { it.isNotBlank() }
+        return processCreateProjectSubmission(view, teamId, channelId)
     }
 
     private fun processCreateProjectSubmission(
         view: Map<*, *>,
         teamId: String,
+        channelId: String?,
     ): ResponseEntity<Any> {
         val state = view["state"] as? Map<*, *>
         val values = state?.get("values") as? Map<*, *>
@@ -88,12 +91,23 @@ class SlackInteractiveRequestHandler(
                 logger.info { "Creating project from modal: name=$projectName industry=$industryName tenant=${tenant.id}" }
 
                 val result =
-                    tenantProjectService.createProject(
-                        tenantId = tenant.id,
-                        name = projectName,
-                        description = description,
-                        industry = industryName,
-                    )
+                    if (channelId != null) {
+                        tenantProjectService.createPrivateAndLink(
+                            tenantId = tenant.id,
+                            channelId = channelId,
+                            name = projectName,
+                            description = description,
+                            industry = industryName,
+                        )
+                    } else {
+                        logger.warn { "Missing private_metadata channelId, creating project without link" }
+                        tenantProjectService.createProject(
+                            tenantId = tenant.id,
+                            name = projectName,
+                            description = description,
+                            industry = industryName,
+                        )
+                    }
 
                 when (result) {
                     is TenantProjectService.CreateResult.Success -> {
@@ -102,12 +116,18 @@ class SlackInteractiveRequestHandler(
                             projectName = result.project.name,
                             description = description,
                             industryName = industryName,
+                            linked = channelId != null,
                         )
                     }
 
                     is TenantProjectService.CreateResult.AlreadyExists -> {
                         logger.info { "Project already exists: ${result.name}" }
                         buildErrorResponse("Projekt *${result.name}* już istnieje.")
+                    }
+
+                    is TenantProjectService.CreateResult.PublicAlreadyExists -> {
+                        logger.info { "Public project already exists: ${result.name}" }
+                        buildErrorResponse("Publiczny projekt *${result.name}* już istnieje.")
                     }
                 }
             }
@@ -147,9 +167,11 @@ class SlackInteractiveRequestHandler(
         projectName: String,
         description: String?,
         industryName: String?,
+        linked: Boolean = false,
     ): ResponseEntity<Any> {
         val industryInfo = industryName?.let { "Branża: $it" } ?: "Branża: nie wybrano"
         val descriptionInfo = description?.let { "Opis: $it" } ?: ""
+        val linkInfo = if (linked) "\nPowiązano z tym kanałem." else ""
 
         val response =
             mapOf(
@@ -167,7 +189,7 @@ class SlackInteractiveRequestHandler(
                                         mapOf(
                                             "type" to "mrkdwn",
                                             "text" to
-                                                ":white_check_mark: *Projekt utworzony*\n\n*$projectName*\n$industryInfo\n$descriptionInfo",
+                                                ":white_check_mark: *Projekt utworzony*\n\n*$projectName*\n$industryInfo\n$descriptionInfo$linkInfo",
                                         ),
                                 ),
                             ),
@@ -188,9 +210,56 @@ class SlackInteractiveRequestHandler(
     }
 
     private fun handleButtonInteraction(payload: Map<String, Any>): ResponseEntity<Any> {
+        if (isPromoteAction(payload)) {
+            return handlePromoteInteraction(payload)
+        }
         val interaction = parsePayload(payload) ?: return ResponseEntity.ok().build()
         saveFeedbackEvent(interaction)
         updateMessageButtonsIfNeeded(interaction)
+        return ResponseEntity.ok().build()
+    }
+
+    private fun isPromoteAction(payload: Map<String, Any>): Boolean {
+        val actions = payload["actions"] as? List<*> ?: return false
+        val action = actions.firstOrNull() as? Map<*, *> ?: return false
+        return action["action_id"] as? String == ACTION_PROMOTE
+    }
+
+    private fun handlePromoteInteraction(payload: Map<String, Any>): ResponseEntity<Any> {
+        val actions = (payload["actions"] as? List<*>)?.firstOrNull() as? Map<*, *>
+        val feedbackId = actions?.get("value") as? String
+        val user = payload["user"] as? Map<*, *>
+        val userId = user?.get("id") as? String
+        val team = payload["team"] as? Map<*, *>
+        val teamId = team?.get("id") as? String
+        val container = payload["container"] as? Map<*, *>
+        val message = payload["message"] as? Map<*, *>
+        val channelId =
+            container?.get("channel_id") as? String
+                ?: message?.get("channel") as? String
+
+        if (feedbackId == null || userId == null || teamId == null) {
+            logger.warn { "Missing fields in promote interaction" }
+            return ResponseEntity.ok().build()
+        }
+        val tenantId =
+            tenantResolver.withTenantResult(teamId) { tenant -> tenant.id.toString() }
+        if (tenantId == null) {
+            logger.warn { "Cannot resolve tenant for promote interaction teamId=$teamId" }
+            return ResponseEntity.ok().build()
+        }
+        outboxService.saveEvent(
+            eventType = SlackPromoteToPublicHandler.EVENT_TYPE,
+            aggregateId = "promote_${feedbackId}_$userId",
+            payload =
+                mapOf(
+                    "feedbackId" to feedbackId,
+                    "userId" to userId,
+                    "tenantId" to tenantId,
+                    "channelId" to (channelId ?: ""),
+                ),
+        )
+        logger.info { "Promoted entry $feedbackId → public by $userId" }
         return ResponseEntity.ok().build()
     }
 
@@ -239,5 +308,9 @@ class SlackInteractiveRequestHandler(
                     "in channel=${interaction.channelId}"
             }
         }
+    }
+
+    companion object {
+        const val ACTION_PROMOTE = SlackInteractionPayload.ACTION_PROMOTE
     }
 }

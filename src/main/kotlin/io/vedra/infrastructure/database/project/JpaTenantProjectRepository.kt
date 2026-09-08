@@ -1,5 +1,6 @@
 package io.vedra.infrastructure.database.project
 
+import io.vedra.domain.model.ProjectVisibility
 import io.vedra.domain.repository.project.TenantProjectRepository
 import org.springframework.stereotype.Repository
 import java.util.UUID
@@ -11,8 +12,8 @@ class JpaTenantProjectRepository(
 ) : TenantProjectRepository {
     override fun findByTenantId(tenantId: UUID): List<DomainTenantProject> = springDataRepo.findByTenantId(tenantId).map { it.toDomain() }
 
-    override fun findByTenantIdAndIsGeneralTrue(tenantId: UUID): DomainTenantProject? =
-        springDataRepo.findByTenantIdAndIsGeneralTrue(tenantId)?.toDomain()
+    override fun findPublicByTenantId(tenantId: UUID): DomainTenantProject? =
+        springDataRepo.findByTenantIdAndVisibility(tenantId, ProjectVisibility.PUBLIC)?.toDomain()
 
     override fun findByTenantIdAndId(
         tenantId: UUID,

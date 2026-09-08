@@ -39,6 +39,12 @@ class JpaKnowledgeRepository(
         contentHash: String,
     ): DomainKnowledgeEntry? = springDataRepo.findByContentHash(tenantId, projectId, contentHash)?.toDomain()
 
+    override fun findBySourceEntryId(
+        tenantId: UUID,
+        projectId: UUID,
+        sourceEntryId: String,
+    ): DomainKnowledgeEntry? = springDataRepo.findBySourceEntryId(tenantId, projectId, sourceEntryId)?.toDomain()
+
     override fun findReusableAiAnswer(
         tenantId: UUID,
         projectId: UUID?,

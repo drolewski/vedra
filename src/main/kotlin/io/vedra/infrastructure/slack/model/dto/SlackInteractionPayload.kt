@@ -24,6 +24,7 @@ data class SlackInteractionPayload(
     companion object {
         const val ACTION_POSITIVE = "feedback_positive"
         const val ACTION_NEGATIVE = "feedback_negative"
+        const val ACTION_PROMOTE = "promote_public"
         const val VOTE_POSITIVE = "positive"
         const val VOTE_NEGATIVE = "negative"
 

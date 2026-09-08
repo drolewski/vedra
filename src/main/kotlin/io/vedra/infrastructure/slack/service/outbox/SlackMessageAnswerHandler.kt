@@ -25,7 +25,7 @@ class SlackMessageAnswerHandler(
         val question = event.payload["question"] as? String
         val tenantId = event.payload["tenantId"] as? String
 
-        if (channel == null || threadTs == null || question == null) {
+        if (channel == null || threadTs == null || question == null || tenantId == null) {
             logger.warn { "Missing required payload fields in SLACK_MESSAGE_ANSWER event: ${event.id}" }
             return
         }
@@ -36,13 +36,19 @@ class SlackMessageAnswerHandler(
                 ?.map { UUID.fromString(it) }
                 ?: emptyList()
 
-        val allProjectIds: List<UUID?> = projectIds + listOf<UUID?>(null)
+        val tenantUuid =
+            try {
+                UUID.fromString(tenantId)
+            } catch (_: IllegalArgumentException) {
+                logger.warn { "Invalid tenantId in SLACK_MESSAGE_ANSWER event: ${event.id}" }
+                return
+            }
 
         logger.debug {
             "Processing answer for tenant=$tenantId channel=$channel threadTs=$threadTs projectIds=$projectIds"
         }
 
-        val result = knowledgeService.answerQuestion(question, allProjectIds)
+        val result = knowledgeService.answerQuestion(question, projectIds, tenantUuid)
         val feedbackId = UUID.randomUUID().toString()
 
         val messageTs =

@@ -2,6 +2,7 @@ package io.vedra.infrastructure.slack.formatter
 
 import io.vedra.infrastructure.slack.model.dto.SlackInteractionPayload.Companion.ACTION_NEGATIVE
 import io.vedra.infrastructure.slack.model.dto.SlackInteractionPayload.Companion.ACTION_POSITIVE
+import io.vedra.infrastructure.slack.model.dto.SlackInteractionPayload.Companion.ACTION_PROMOTE
 
 class FeedbackBlockBuilder(
     private val wrapped: SlackBlockBuilder,
@@ -29,6 +30,12 @@ class FeedbackBlockBuilder(
                                 "value" to feedbackId,
                                 "style" to "danger",
                             ),
+                            mapOf(
+                                "type" to "button",
+                                "text" to mapOf("type" to "plain_text", "text" to LABEL_SHARE),
+                                "action_id" to ACTION_PROMOTE,
+                                "value" to feedbackId,
+                            ),
                         ),
                 ),
             )
@@ -37,5 +44,6 @@ class FeedbackBlockBuilder(
         const val BLOCK_ACTIONS = "feedback_actions"
         const val LABEL_HELPFUL = "Pomogło :+1:"
         const val LABEL_NOT_HELPFUL = "Nie pomogło :-1:"
+        const val LABEL_SHARE = "Udostępnij 🌍"
     }
 }

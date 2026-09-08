@@ -1,5 +1,6 @@
 package io.vedra.infrastructure.slack.service.command.list
 
+import io.vedra.domain.model.ProjectVisibility
 import io.vedra.domain.service.TenantProjectService
 import io.vedra.infrastructure.slack.service.SlackTenantResolver
 import io.vedra.infrastructure.slack.service.command.CommandHandler
@@ -23,7 +24,7 @@ class ListProjectsCommandHandler(
             val lines =
                 projects.map { project ->
                     val tags = mutableListOf<String>()
-                    if (project.isGeneral) tags.add("ogólna")
+                    if (project.visibility == ProjectVisibility.PUBLIC) tags.add("publiczny")
                     project.industry?.let { tags.add("branża: $it") }
                     val label = if (tags.isNotEmpty()) "(${tags.joinToString(", ")})" else ""
                     "• *${project.id}*: ${project.name} $label"

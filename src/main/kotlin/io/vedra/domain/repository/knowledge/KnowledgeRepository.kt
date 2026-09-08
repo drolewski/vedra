@@ -31,6 +31,12 @@ interface KnowledgeRepository {
         contentHash: String,
     ): KnowledgeEntry?
 
+    fun findBySourceEntryId(
+        tenantId: UUID,
+        projectId: UUID,
+        sourceEntryId: String,
+    ): KnowledgeEntry?
+
     fun findReusableAiAnswer(
         tenantId: UUID,
         projectId: UUID?,

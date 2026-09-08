@@ -35,6 +35,7 @@ class SlackMessageAnswerHandlerTest {
     @Test
     fun `should handle event by calling knowledgeService and sending formatted message`() {
         val entryId = UUID.randomUUID()
+        val tenantId = UUID.randomUUID()
         val event =
             OutboxEvent(
                 eventType = "SLACK_MESSAGE_ANSWER",
@@ -43,6 +44,7 @@ class SlackMessageAnswerHandlerTest {
                         "channel" to "C123",
                         "threadTs" to "1234567890.123456",
                         "question" to "Jakie jest prawo Ohma?",
+                        "tenantId" to tenantId.toString(),
                         "projectIds" to emptyList<String>(),
                     ),
             )
@@ -55,7 +57,7 @@ class SlackMessageAnswerHandlerTest {
                 entryIds = listOf(entryId),
             )
 
-        every { knowledgeService.answerQuestion(any(), any()) } returns expectedResult
+        every { knowledgeService.answerQuestion(any(), any(), any()) } returns expectedResult
         every { slackMessageService.sendThreadMessageWithFeedback(any(), any(), any(), any()) } returns "222.0"
 
         handler.handle(event)
@@ -63,7 +65,8 @@ class SlackMessageAnswerHandlerTest {
         verify {
             knowledgeService.answerQuestion(
                 "Jakie jest prawo Ohma?",
-                listOf(null),
+                emptyList(),
+                tenantId,
             )
         }
         verify {
@@ -98,7 +101,7 @@ class SlackMessageAnswerHandlerTest {
 
         handler.handle(event)
 
-        verify(exactly = 0) { knowledgeService.answerQuestion(any(), any()) }
+        verify(exactly = 0) { knowledgeService.answerQuestion(any(), any(), any()) }
         verify(exactly = 0) { slackMessageService.sendThreadMessageWithFeedback(any(), any(), any(), any()) }
     }
 
@@ -116,7 +119,7 @@ class SlackMessageAnswerHandlerTest {
 
         handler.handle(event)
 
-        verify(exactly = 0) { knowledgeService.answerQuestion(any(), any()) }
+        verify(exactly = 0) { knowledgeService.answerQuestion(any(), any(), any()) }
         verify(exactly = 0) { slackMessageService.sendThreadMessageWithFeedback(any(), any(), any(), any()) }
     }
 
@@ -134,7 +137,7 @@ class SlackMessageAnswerHandlerTest {
 
         handler.handle(event)
 
-        verify(exactly = 0) { knowledgeService.answerQuestion(any(), any()) }
+        verify(exactly = 0) { knowledgeService.answerQuestion(any(), any(), any()) }
         verify(exactly = 0) { slackMessageService.sendThreadMessageWithFeedback(any(), any(), any(), any()) }
     }
 
@@ -153,7 +156,7 @@ class SlackMessageAnswerHandlerTest {
 
         handler.handle(event)
 
-        verify(exactly = 0) { knowledgeService.answerQuestion(any(), any()) }
+        verify(exactly = 0) { knowledgeService.answerQuestion(any(), any(), any()) }
         verify(exactly = 0) { slackMessageService.sendThreadMessageWithFeedback(any(), any(), any(), any()) }
     }
 }

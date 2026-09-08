@@ -6,7 +6,7 @@ import java.util.UUID
 interface TenantProjectRepository {
     fun findByTenantId(tenantId: UUID): List<TenantProject>
 
-    fun findByTenantIdAndIsGeneralTrue(tenantId: UUID): TenantProject?
+    fun findPublicByTenantId(tenantId: UUID): TenantProject?
 
     fun findByTenantIdAndId(
         tenantId: UUID,

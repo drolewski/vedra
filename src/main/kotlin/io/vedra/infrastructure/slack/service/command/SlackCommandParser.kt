@@ -36,7 +36,7 @@ class SlackCommandParser {
             }
             "unlink" -> UnlinkProjectCommand(channelId)
             "list" -> ListProjectsCommand(workspaceId)
-            "status" -> StatusCommand(channelId)
+            "status" -> StatusCommand(channelId, workspaceId)
             else -> HelpCommand()
         }
     }

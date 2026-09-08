@@ -30,6 +30,7 @@ class MessageEventHandlerTest {
 
     init {
         every { tenantProjectService.getProjectIdsForChannel(any(), any()) } returns listOf(null)
+        every { tenantProjectService.getPrivateLinkedProjectId(any(), any()) } returns null
         every { slackClient.getTeamName(any()) } returns "Test Team"
         every { tenantResolver.withTenantResult<Unit>(any(), any()) } answers {
             val block = secondArg<(Tenant) -> Unit>()

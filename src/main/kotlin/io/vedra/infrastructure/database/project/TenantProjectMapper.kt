@@ -9,7 +9,7 @@ fun TenantProject.toDomain(): DomainTenantProject =
         name = this.name,
         description = this.description,
         industry = this.industry,
-        isGeneral = this.isGeneral,
+        visibility = this.visibility,
         createdAt = this.createdAt,
     )
 
@@ -20,5 +20,5 @@ fun DomainTenantProject.toEntity(): TenantProject =
         name = this.name,
         description = this.description,
         industry = this.industry,
-        isGeneral = this.isGeneral,
+        visibility = this.visibility,
     )

@@ -85,6 +85,22 @@ interface SpringDataKnowledgeRepository : JpaRepository<KnowledgeEntry, UUID> {
         value = """
             SELECT * FROM knowledge_entries
             WHERE tenant_id = :tenantId
+              AND project_id = :projectId
+              AND metadata ->> 'source_entry_id' = :sourceEntryId
+            LIMIT 1
+        """,
+        nativeQuery = true,
+    )
+    fun findBySourceEntryId(
+        tenantId: UUID,
+        projectId: UUID,
+        sourceEntryId: String,
+    ): KnowledgeEntry?
+
+    @Query(
+        value = """
+            SELECT * FROM knowledge_entries
+            WHERE tenant_id = :tenantId
               AND content_hash = :contentHash
               AND (project_id = :projectId OR (project_id IS NULL AND :projectId IS NULL))
               AND answer_source = 'AI_GENERATED'

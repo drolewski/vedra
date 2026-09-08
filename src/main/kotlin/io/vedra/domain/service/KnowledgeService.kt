@@ -30,19 +30,28 @@ class KnowledgeService(
     private val embeddingCacheService: EmbeddingCacheService,
     @Value("\${spring.ai.ollama.chat.options.model:llama3.2}") private val modelVersion: String = "llama3.2",
 ) {
+    @Deprecated("Use answerQuestion(question, projectIds, tenantId) with real tenant")
     @Transactional
-    fun answerQuestion(question: String): AnswerResult = answerQuestion(question, listOf(null))
+    fun answerQuestion(question: String): AnswerResult = answerQuestion(question, listOf(null), TENANT_ID)
+
+    @Deprecated("Use answerQuestion(question, projectIds, tenantId) with real tenant")
+    @Transactional
+    fun answerQuestion(
+        question: String,
+        projectIds: List<UUID?>,
+    ): AnswerResult = answerQuestion(question, projectIds, TENANT_ID)
 
     @Transactional
     fun answerQuestion(
         question: String,
         projectIds: List<UUID?>,
+        tenantId: UUID,
     ): AnswerResult {
         val projectId = projectIds.firstOrNull()
         val normalized = questionNormalizer.normalize(question, projectId)
 
         // Priority 1: Check for reusable AI answer in knowledge_entries
-        findReusableAiAnswer(normalized)?.let { reusable ->
+        findReusableAiAnswer(normalized, tenantId)?.let { reusable ->
             log.debug { "Reusing existing AI answer for hash=${normalized.hash}" }
             incrementReusedCount(reusable)
             return AnswerResult(
@@ -54,7 +63,7 @@ class KnowledgeService(
         }
 
         // Priority 2: Check LLM cache
-        val cachedAnswer = llmCacheService.lookup(TENANT_ID, projectId, normalized.hash)
+        val cachedAnswer = llmCacheService.lookup(tenantId, projectId, normalized.hash)
         if (cachedAnswer != null) {
             log.debug { "LLM cache hit for hash=${normalized.hash}" }
             return AnswerResult(
@@ -71,7 +80,7 @@ class KnowledgeService(
 
         val similarEntries =
             knowledgeRepository.findSimilarWithScore(
-                tenantId = TENANT_ID,
+                tenantId = tenantId,
                 projectIds = projectIds,
                 embedding = embeddingString,
                 limit = 3,
@@ -86,30 +95,40 @@ class KnowledgeService(
             }
 
             if (similarEntries.first().score >= MEDIUM_CONFIDENCE) {
-                return answerWithContext(normalized, similarEntries)
+                return answerWithContext(normalized, similarEntries, tenantId)
             }
         }
 
-        return answerWithoutContext(normalized)
+        return answerWithoutContext(normalized, tenantId)
     }
 
+    @Deprecated("Use addKnowledge(question, answer, projectId, tenantId) with real tenant")
     @Transactional
     fun addKnowledge(
         question: String,
         answer: String,
-    ): KnowledgeEntry = addKnowledge(question, answer, null)
+    ): KnowledgeEntry = addKnowledge(question, answer, null, TENANT_ID)
+
+    @Deprecated("Use addKnowledge(question, answer, projectId, tenantId) with real tenant")
+    @Transactional
+    fun addKnowledge(
+        question: String,
+        answer: String,
+        projectId: UUID?,
+    ): KnowledgeEntry = addKnowledge(question, answer, projectId, TENANT_ID)
 
     @Transactional
     fun addKnowledge(
         question: String,
         answer: String,
         projectId: UUID?,
+        tenantId: UUID,
     ): KnowledgeEntry {
         val normalized = questionNormalizer.normalize(question, projectId)
         val normalizedAnswer = answerNormalizer.normalize(answer)
         val entry =
             KnowledgeEntry(
-                tenantId = TENANT_ID,
+                tenantId = tenantId,
                 projectId = projectId,
                 source = KnowledgeSourceType.FAQ,
                 content = question,
@@ -121,9 +140,12 @@ class KnowledgeService(
         return knowledgeRepository.save(entry)
     }
 
-    private fun findReusableAiAnswer(normalized: NormalizedQuestion): KnowledgeEntry? =
+    private fun findReusableAiAnswer(
+        normalized: NormalizedQuestion,
+        tenantId: UUID,
+    ): KnowledgeEntry? =
         try {
-            knowledgeRepository.findReusableAiAnswer(TENANT_ID, normalized.projectId, normalized.hash)
+            knowledgeRepository.findReusableAiAnswer(tenantId, normalized.projectId, normalized.hash)
         } catch (e: Exception) {
             log.warn(e) { "Failed to find reusable AI answer" }
             null
@@ -166,6 +188,7 @@ class KnowledgeService(
     private fun answerWithContext(
         normalized: NormalizedQuestion,
         entries: List<SimilarityResultProjection>,
+        tenantId: UUID,
     ): AnswerResult {
         val context = buildContext(entries)
 
@@ -178,7 +201,7 @@ class KnowledgeService(
         if (llmAnswer == null || isNoInfo(llmAnswer)) {
             val fallbackAnswer =
                 entries.firstNotNullOfOrNull { it.answer }
-                    ?: return answerWithoutContext(normalized)
+                    ?: return answerWithoutContext(normalized, tenantId)
 
             return AnswerResult(
                 answer = fallbackAnswer,
@@ -189,10 +212,10 @@ class KnowledgeService(
         }
 
         val normalizedAnswer = answerNormalizer.normalize(llmAnswer)
-        val savedEntry = saveAiAnswer(normalized, normalizedAnswer.normalized)
+        val savedEntry = saveAiAnswer(normalized, normalizedAnswer.normalized, tenantId)
 
         llmCacheService.save(
-            tenantId = TENANT_ID,
+            tenantId = tenantId,
             projectId = normalized.projectId,
             questionHash = normalized.hash,
             normalizedQuestion = normalized.normalized,
@@ -212,7 +235,10 @@ class KnowledgeService(
         )
     }
 
-    private fun answerWithoutContext(normalized: NormalizedQuestion): AnswerResult {
+    private fun answerWithoutContext(
+        normalized: NormalizedQuestion,
+        tenantId: UUID,
+    ): AnswerResult {
         val llmAnswer =
             llmPort.generate(
                 Prompts.General.system,
@@ -220,10 +246,10 @@ class KnowledgeService(
             ) ?: FALLBACK_ANSWER
 
         val normalizedAnswer = answerNormalizer.normalize(llmAnswer)
-        val savedEntry = saveAiAnswer(normalized, normalizedAnswer.normalized)
+        val savedEntry = saveAiAnswer(normalized, normalizedAnswer.normalized, tenantId)
 
         llmCacheService.save(
-            tenantId = TENANT_ID,
+            tenantId = tenantId,
             projectId = normalized.projectId,
             questionHash = normalized.hash,
             normalizedQuestion = normalized.normalized,
@@ -258,11 +284,12 @@ class KnowledgeService(
     private fun saveAiAnswer(
         normalized: NormalizedQuestion,
         answer: String,
+        tenantId: UUID,
     ): KnowledgeEntry? =
         try {
             val entry =
                 KnowledgeEntry(
-                    tenantId = TENANT_ID,
+                    tenantId = tenantId,
                     projectId = normalized.projectId,
                     source = KnowledgeSourceType.FAQ,
                     content = normalized.original,

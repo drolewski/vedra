@@ -41,16 +41,16 @@ class MessageEventHandler(
             val projectIds = tenantProjectService.getProjectIdsForChannel(tenant.id!!, channel)
 
             if (projectIds.isEmpty()) {
-                logger.debug { "No projects linked to channel=$channel, skipping" }
+                logger.debug { "No public nor linked project for channel=$channel, skipping" }
                 return@withTenantResult
             }
 
             if (isQuestion(text)) {
                 handleQuestion(event, tenant.id!!, channel, text, projectIds)
             } else {
-                val specificProjectId = projectIds.firstOrNull()
+                val specificProjectId = tenantProjectService.getPrivateLinkedProjectId(channel, tenant.id!!)
                 if (specificProjectId == null) {
-                    logger.debug { "No specific project linked to channel=$channel, skipping ingestion" }
+                    logger.debug { "No private project linked to channel=$channel, skipping ingestion" }
                     return@withTenantResult
                 }
                 handleIngestion(event, tenant.id!!, channel, specificProjectId, text)

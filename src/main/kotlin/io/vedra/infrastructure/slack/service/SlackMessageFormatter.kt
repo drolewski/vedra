@@ -49,12 +49,32 @@ class SlackMessageFormatter {
                     ),
             )
 
-        return originalBlocks.filter { it["block_id"] != FeedbackBlockBuilder.BLOCK_ACTIONS } + confirmationBlock
+        val baseBlocks = originalBlocks.filter { it["block_id"] != FeedbackBlockBuilder.BLOCK_ACTIONS }
+        val promoteButton = extractPromoteButton(originalBlocks)
+        if (promoteButton == null) return baseBlocks + confirmationBlock
+        val promoteBlock =
+            mapOf(
+                "type" to "actions",
+                "block_id" to FeedbackBlockBuilder.BLOCK_ACTIONS,
+                "elements" to listOf(promoteButton),
+            )
+        return baseBlocks + promoteBlock + confirmationBlock
+    }
+
+    @Suppress("UNCHECKED_CAST")
+    private fun extractPromoteButton(blocks: List<Map<String, Any>>): Map<String, Any>? {
+        val actionsBlock = blocks.firstOrNull { it["block_id"] == FeedbackBlockBuilder.BLOCK_ACTIONS }
+        val elements = actionsBlock?.get("elements") as? List<Map<String, Any>> ?: return null
+        return elements.firstOrNull { it["action_id"] == ACTION_PROMOTE }
     }
 
     fun formatAnswer(result: AnswerResult): String {
         val sourceLabel = resolveSourceLabel(result.source)
         return "${result.answer}\n\n$sourceLabel"
+    }
+
+    private companion object {
+        const val ACTION_PROMOTE = "promote_public"
     }
 
     private fun resolveVoteLabel(vote: String): String =

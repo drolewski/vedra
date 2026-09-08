@@ -40,6 +40,8 @@ class KnowledgeServiceTest {
         every { knowledgeRepository.save(any()) } answers { firstArg() }
         every { knowledgeRepository.findReusableAiAnswer(any(), any(), any()) } returns null
         every { knowledgeRepository.findByContentHash(any(), any(), any()) } returns null
+        every { llmCacheService.lookup(any(), any(), any()) } returns null
+        every { embeddingCacheService.lookup(any()) } returns null
         every { questionNormalizer.normalize(any(), any()) } answers {
             val question = it.invocation.args[0] as String
             val project = it.invocation.args[1] as? UUID

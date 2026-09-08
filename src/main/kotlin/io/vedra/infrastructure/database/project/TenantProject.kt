@@ -1,7 +1,10 @@
 package io.vedra.infrastructure.database.project
 
+import io.vedra.domain.model.ProjectVisibility
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
+import jakarta.persistence.EnumType
+import jakarta.persistence.Enumerated
 import jakarta.persistence.GeneratedValue
 import jakarta.persistence.GenerationType
 import jakarta.persistence.Id
@@ -24,8 +27,9 @@ data class TenantProject(
     val description: String? = null,
     @Column(length = 100)
     val industry: String? = null,
-    @Column(name = "is_general", nullable = false)
-    val isGeneral: Boolean = false,
+    @Enumerated(EnumType.STRING)
+    @Column(name = "visibility", nullable = false, length = 20)
+    val visibility: ProjectVisibility = ProjectVisibility.PRIVATE,
     @Column(name = "created_at", nullable = false, updatable = false)
     val createdAt: Instant = Instant.now(),
 ) {
@@ -42,5 +46,5 @@ data class TenantProject(
 
     override fun hashCode(): Int = id?.hashCode() ?: 0
 
-    override fun toString(): String = "TenantProject(id=$id, name=$name, industry=$industry, isGeneral=$isGeneral)"
+    override fun toString(): String = "TenantProject(id=$id, name=$name, industry=$industry, visibility=$visibility)"
 }
