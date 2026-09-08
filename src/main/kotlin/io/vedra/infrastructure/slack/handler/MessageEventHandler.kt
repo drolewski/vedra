@@ -8,6 +8,7 @@ import io.vedra.infrastructure.slack.model.SlackEvent
 import io.vedra.infrastructure.slack.model.SlackEventHandler
 import io.vedra.infrastructure.slack.service.SlackTenantResolver
 import io.vedra.infrastructure.slack.service.outbox.SlackMessageAnswerHandler
+import io.vedra.infrastructure.slack.service.outbox.SlackMessageIngestionHandler
 import org.springframework.stereotype.Component
 
 private val logger = KotlinLogging.logger {}
@@ -22,37 +23,97 @@ class MessageEventHandler(
 
     override fun handle(event: SlackEvent) {
         val channel = event.channel
-        val threadTs = event.threadTs
-        val question = event.text
+        val text = event.text
         val workspaceId = event.workspaceId
+        val userId = event.userId
 
-        logger.info { "MessageEventHandler received: channel=$channel threadTs=$threadTs text=${question?.take(50)}" }
+        logger.info { "MessageEventHandler received: channel=$channel userId=$userId text=${text?.take(50)}" }
 
-        if (channel == null || threadTs == null || question.isNullOrBlank() || workspaceId == null) {
+        if (channel == null || text.isNullOrBlank() || workspaceId == null || userId == null) {
             logger.info {
-                "Skipping incomplete message event: channel=$channel threadTs=$threadTs textBlank=${question.isNullOrBlank()} workspaceId=$workspaceId"
+                "Skipping incomplete message event: channel=$channel textBlank=${text.isNullOrBlank()} " +
+                    "workspaceId=$workspaceId userId=$userId"
             }
             return
         }
 
         tenantResolver.withTenantResult(workspaceId) { tenant ->
             val projectIds = tenantProjectService.getProjectIdsForChannel(tenant.id!!, channel)
-            logger.info { "Resolved tenant=${tenant.name} projectIds for channel=$channel: $projectIds" }
 
-            outboxService.saveEvent(
-                eventType = SlackMessageAnswerHandler.EVENT_TYPE,
-                aggregateId = event.eventId,
-                payload =
-                    mutableMapOf<String, Any>(
-                        "tenantId" to tenant.id.toString(),
-                        "channel" to channel,
-                        "threadTs" to threadTs,
-                        "question" to question,
-                        "projectIds" to projectIds.filterNotNull().map { it.toString() },
-                    ),
-            )
+            if (projectIds.isEmpty()) {
+                logger.debug { "No projects linked to channel=$channel, skipping" }
+                return@withTenantResult
+            }
 
-            logger.info { "Saved message to outbox: channel=$channel threadTs=$threadTs eventId=${event.eventId}" }
+            if (isQuestion(text)) {
+                handleQuestion(event, tenant.id!!, channel, text, projectIds)
+            } else {
+                val specificProjectId = projectIds.firstOrNull()
+                if (specificProjectId == null) {
+                    logger.debug { "No specific project linked to channel=$channel, skipping ingestion" }
+                    return@withTenantResult
+                }
+                handleIngestion(event, tenant.id!!, channel, specificProjectId, text)
+            }
         }
+    }
+
+    private fun handleQuestion(
+        event: SlackEvent,
+        tenantId: java.util.UUID,
+        channel: String,
+        question: String,
+        projectIds: List<java.util.UUID?>,
+    ) {
+        val threadTs = event.threadTs
+
+        outboxService.saveEvent(
+            eventType = SlackMessageAnswerHandler.EVENT_TYPE,
+            aggregateId = event.eventId,
+            payload =
+                mutableMapOf<String, Any>(
+                    "tenantId" to tenantId.toString(),
+                    "channel" to channel,
+                    "threadTs" to (threadTs ?: ""),
+                    "question" to question,
+                    "projectIds" to projectIds.filterNotNull().map { it.toString() },
+                ),
+        )
+
+        logger.info { "Saved question to outbox: channel=$channel eventId=${event.eventId}" }
+    }
+
+    private fun handleIngestion(
+        event: SlackEvent,
+        tenantId: java.util.UUID,
+        channel: String,
+        projectId: java.util.UUID,
+        content: String,
+    ) {
+        outboxService.saveEvent(
+            eventType = SlackMessageIngestionHandler.EVENT_TYPE,
+            aggregateId = "ingestion-${event.eventId}",
+            payload =
+                mutableMapOf<String, Any>(
+                    "tenantId" to tenantId.toString(),
+                    "projectId" to projectId.toString(),
+                    "channelId" to channel,
+                    "messageTs" to (event.eventId ?: ""),
+                    "userId" to (event.userId ?: ""),
+                    "threadTs" to (event.threadTs ?: ""),
+                    "content" to content,
+                ),
+        )
+
+        logger.info { "Saved channel message for ingestion: channel=$channel eventId=${event.eventId}" }
+    }
+
+    private fun isQuestion(text: String): Boolean {
+        val trimmed = text.trim()
+        return trimmed.endsWith("?") || trimmed.lowercase().contains("@vedra")
+    }
+
+    companion object {
+        private const val INGESTION_AGGREGATE_PREFIX = "ingestion-"
     }
 }

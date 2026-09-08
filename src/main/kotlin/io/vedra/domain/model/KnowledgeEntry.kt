@@ -1,5 +1,6 @@
 package io.vedra.domain.model
 
+import com.pgvector.PGvector
 import java.time.Instant
 import java.util.UUID
 
@@ -11,6 +12,7 @@ data class KnowledgeEntry(
     val content: String,
     val answer: String? = null,
     val metadata: Map<String, Any> = emptyMap(),
+    val embedding: PGvector? = null,
     val answerSource: AnswerSource = AnswerSource.USER_VERIFIED,
     var qualityScore: Float = 0.5f,
     var usageCount: Int = 0,
@@ -29,6 +31,7 @@ enum class KnowledgeSourceType {
     DOCUMENT_TEXT,
     DOCUMENT_IMAGE,
     DOCUMENT_FILE,
+    CHANNEL_MESSAGE,
 }
 
 enum class AnswerSource {

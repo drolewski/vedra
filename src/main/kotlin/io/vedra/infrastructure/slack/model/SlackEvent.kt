@@ -8,6 +8,7 @@ data class SlackEvent(
     val text: String?,
     val channel: String?,
     val threadTs: String?,
+    val userId: String? = null,
     val workspaceId: String? = null,
 ) {
     val isBotMessage: Boolean
@@ -27,6 +28,7 @@ data class SlackEvent(
                 text = payload["text"] as? String,
                 channel = payload["channel"] as? String,
                 threadTs = payload["thread_ts"] as? String ?: payload["ts"] as? String,
+                userId = payload["user"] as? String,
                 workspaceId = workspaceId,
             )
 

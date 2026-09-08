@@ -80,6 +80,7 @@ class MessageEventHandlerTest {
                 text = "Jakie jest prawo Ohma?",
                 channel = "C456",
                 threadTs = "1234567890.123456",
+                userId = "U789",
                 workspaceId = "T123",
             )
 
@@ -119,6 +120,7 @@ class MessageEventHandlerTest {
                 text = "question",
                 channel = null,
                 threadTs = "1234567890.123456",
+                userId = "U789",
             )
 
         handler.handle(event)
@@ -127,7 +129,7 @@ class MessageEventHandlerTest {
     }
 
     @Test
-    fun `should not save event when threadTs is null`() {
+    fun `should not save event when userId is null`() {
         val event =
             SlackEvent(
                 eventId = "Ev123",
@@ -136,7 +138,8 @@ class MessageEventHandlerTest {
                 botId = null,
                 text = "question",
                 channel = "C456",
-                threadTs = null,
+                threadTs = "1234567890.123456",
+                userId = null,
             )
 
         handler.handle(event)
@@ -155,6 +158,7 @@ class MessageEventHandlerTest {
                 text = null,
                 channel = "C456",
                 threadTs = "1234567890.123456",
+                userId = "U789",
             )
 
         handler.handle(event)

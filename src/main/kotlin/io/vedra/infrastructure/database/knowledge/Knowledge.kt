@@ -90,6 +90,7 @@ enum class KnowledgeSourceType {
     DOCUMENT_TEXT,
     DOCUMENT_IMAGE,
     DOCUMENT_FILE,
+    CHANNEL_MESSAGE,
 }
 
 enum class AnswerSource {

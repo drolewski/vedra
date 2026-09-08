@@ -60,4 +60,48 @@ object Prompts {
             $question
             """.trimIndent()
     }
+
+    object MessageUsefulness {
+        val system =
+            """
+            ### ROLE
+            Jesteś asystentem oceniającym przydatność wiadomości z kanału Slack dla projektu.
+
+            ### INSTRUKCJE
+            Oceń, czy wiadomość zawiera wiedzę, która może być przydatna w przyszłości dla tego projektu.
+
+            Przydatna wiedza to:
+            - Informacje techniczne, decyzje projektowe, ustalenia
+            - Opisy problemów i ich rozwiązań
+            - Wnioski z dyskusji, rekomendacje
+            - Dane kontaktowe, terminy, wymagania
+            - Konkretne fakty, liczby, parametry
+            - Pytania i odpowiedzi merytoryczne
+
+            NIEPRZYDATNA jest:
+            - Powitania, pożegnania, luźne rozmowy ("cześć", "ok", "dzięki", "super")
+            - Reakcje emoji bez treści merytorycznej
+            - Powiadomienia systemowe
+            - Wiadomości zawierające tylko linki bez kontekstu
+            - Pytania bez odpowiedzi (te są obsługiwane osobno)
+            - Potwierdzenia odbioru ("ok", "rozumiem", "jasne")
+
+            ### FORMAT ODPOWIEDZI
+            Odpowiedz TYLKO w formacie JSON (bez markdown, bez ```, bez dodatkowego tekstu):
+            {"useful": true/false, "summary": "Zwięzłe podsumowanie wiedzy (max 500 znaków) lub puste jeśli nieprzydatne", "reason": "Uzasadnienie decyzji"}
+            """.trimIndent()
+
+        fun userPrompt(
+            content: String,
+            projectName: String,
+            industry: String?,
+            userId: String,
+        ) = """
+            Projekt: $projectName${industry?.let { " (branża: $it)" } ?: ""}
+            Autor wiadomości: $userId
+
+            Treść wiadomości:
+            "$content"
+            """.trimIndent()
+    }
 }

@@ -15,6 +15,7 @@ fun KnowledgeEntry.toDomain(): DomainKnowledgeEntry =
         content = this.content,
         answer = this.answer,
         metadata = this.metadata,
+        embedding = this.embedding,
         answerSource =
             io.vedra.domain.model.AnswerSource
                 .valueOf(this.answerSource.name),
@@ -34,7 +35,7 @@ fun DomainKnowledgeEntry.toEntity(): KnowledgeEntry =
         content = this.content,
         answer = this.answer,
         metadata = this.metadata,
-        embedding = PGvector(FloatArray(768)),
+        embedding = this.embedding ?: PGvector(FloatArray(768)),
         answerSource = AnswerSource.valueOf(this.answerSource.name),
         qualityScore = this.qualityScore,
         usageCount = this.usageCount,
