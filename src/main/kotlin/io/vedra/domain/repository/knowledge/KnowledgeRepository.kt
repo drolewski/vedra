@@ -1,6 +1,8 @@
 package io.vedra.domain.repository.knowledge
 
+import io.vedra.domain.model.HybridWeights
 import io.vedra.domain.model.KnowledgeEntry
+import java.time.Instant
 import java.util.UUID
 
 interface KnowledgeRepository {
@@ -23,6 +25,15 @@ interface KnowledgeRepository {
         embedding: String,
         limit: Int = 5,
         minScore: Double = 0.9,
+    ): List<SimilarityResultProjection>
+
+    fun findSimilarWithHybridScore(
+        tenantId: UUID,
+        projectIds: List<UUID?>,
+        embedding: String,
+        limit: Int = 5,
+        minScore: Double = 0.9,
+        weights: HybridWeights = HybridWeights(),
     ): List<SimilarityResultProjection>
 
     fun findByContentHash(
@@ -51,4 +62,8 @@ data class SimilarityResultProjection(
     val source: String,
     val accepted: Boolean,
     val score: Double,
+    val semanticScore: Double = score,
+    val qualityScore: Float = 0.5f,
+    val finalScore: Double = score,
+    val lastUsedAt: Instant? = null,
 )

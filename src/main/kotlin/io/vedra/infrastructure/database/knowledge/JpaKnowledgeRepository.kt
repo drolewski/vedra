@@ -1,5 +1,6 @@
 package io.vedra.infrastructure.database.knowledge
 
+import io.vedra.domain.model.HybridWeights
 import io.vedra.domain.repository.knowledge.KnowledgeRepository
 import org.springframework.stereotype.Repository
 import java.util.UUID
@@ -24,6 +25,28 @@ class JpaKnowledgeRepository(
         minScore: Double,
     ): List<DomainSimilarityResultProjection> =
         springDataRepo.findSimilarWithScore(tenantId, projectIds, embedding, limit, minScore).map { it.toDomain() }
+
+    override fun findSimilarWithHybridScore(
+        tenantId: UUID,
+        projectIds: List<UUID?>,
+        embedding: String,
+        limit: Int,
+        minScore: Double,
+        weights: HybridWeights,
+    ): List<DomainSimilarityResultProjection> =
+        springDataRepo
+            .findSimilarWithHybridScore(
+                tenantId,
+                projectIds,
+                embedding,
+                limit,
+                minScore,
+                weights.semantic,
+                weights.quality,
+                weights.freshness,
+                weights.acceptance,
+                weights.decayDays,
+            ).map { it.toDomain() }
 
     override fun findSimilarGeneralOnly(
         tenantId: UUID,

@@ -11,6 +11,7 @@ import io.vedra.domain.model.ResponseSource
 import io.vedra.domain.repository.knowledge.KnowledgeRepository
 import io.vedra.domain.repository.knowledge.SimilarityResultProjection
 import io.vedra.infrastructure.chat.LLMPort
+import io.vedra.infrastructure.config.HybridScoringProperties
 import io.vedra.infrastructure.embedding.EmbeddingPort
 import java.util.UUID
 import kotlin.test.Test
@@ -25,6 +26,8 @@ class KnowledgeServiceTest {
     private val answerNormalizer: AnswerNormalizer = mockk(relaxed = true)
     private val llmCacheService: LlmCacheService = mockk(relaxed = true)
     private val embeddingCacheService: EmbeddingCacheService = mockk(relaxed = true)
+    private val hybridScoringService = HybridScoringService()
+    private val hybridScoringProperties = HybridScoringProperties().apply { enabled = false }
     private val service =
         KnowledgeService(
             knowledgeRepository,
@@ -34,6 +37,20 @@ class KnowledgeServiceTest {
             answerNormalizer,
             llmCacheService,
             embeddingCacheService,
+            hybridScoringService,
+            hybridScoringProperties,
+        )
+    private val hybridService =
+        KnowledgeService(
+            knowledgeRepository,
+            embeddingPort,
+            llmPort,
+            questionNormalizer,
+            answerNormalizer,
+            llmCacheService,
+            embeddingCacheService,
+            hybridScoringService,
+            HybridScoringProperties().apply { enabled = true },
         )
 
     init {
@@ -381,7 +398,7 @@ class KnowledgeServiceTest {
         every { knowledgeRepository.findByIds(listOf(entryId)) } returns
             listOf(knowledgeEntry(entryId).copy(answerSource = AnswerSource.USER_VERIFIED, accepted = true))
 
-        val result = service.answerQuestion("Q?", listOf(null), tenantId)
+        val result = hybridService.answerQuestion("Q?", listOf(null), tenantId)
 
         assertEquals("Cached", result.answer)
         assertEquals(0.8, result.confidence)
@@ -389,7 +406,7 @@ class KnowledgeServiceTest {
     }
 
     @Test
-    fun `should return verified confidence when cached entry was accepted by vote`() {
+    fun `should return hybrid confidence when cached entry was accepted by vote`() {
         val entryId = UUID.randomUUID()
         val cached =
             io.vedra.domain.model.LlmResponseCacheEntry(
@@ -411,9 +428,9 @@ class KnowledgeServiceTest {
         every { knowledgeRepository.findByIds(listOf(entryId)) } returns
             listOf(knowledgeEntry(entryId).copy(answerSource = AnswerSource.AI_GENERATED, accepted = true))
 
-        val result = service.answerQuestion("Q?", listOf(null), tenantId)
+        val result = hybridService.answerQuestion("Q?", listOf(null), tenantId)
 
-        assertEquals(1.0, result.confidence)
+        assertEquals(0.875, result.confidence, 0.01)
         assertEquals(ResponseSource.KNOWLEDGE_BASE, result.source)
     }
 
@@ -440,10 +457,53 @@ class KnowledgeServiceTest {
         every { knowledgeRepository.findByIds(listOf(entryId)) } returns
             listOf(knowledgeEntry(entryId).copy(answerSource = AnswerSource.AI_GENERATED, accepted = false))
 
-        val result = service.answerQuestion("Q?", listOf(null), tenantId)
+        val result = hybridService.answerQuestion("Q?", listOf(null), tenantId)
 
         assertEquals(0.0, result.confidence)
         assertEquals(ResponseSource.AI_GENERAL, result.source)
+    }
+
+    @Test
+    fun `hybrid query should rank by final score and return it as confidence`() {
+        val entryId = UUID.randomUUID()
+        every {
+            knowledgeRepository.findSimilarWithHybridScore(any(), any(), any(), any(), any(), any())
+        } returns
+            listOf(
+                SimilarityResultProjection(
+                    id = entryId,
+                    content = "Prawo Ohma",
+                    answer = "U = I * R",
+                    source = "FAQ",
+                    accepted = true,
+                    score = 0.9,
+                    semanticScore = 0.95,
+                    qualityScore = 0.5f,
+                    finalScore = 0.9,
+                ),
+            )
+        every { knowledgeRepository.findById(entryId) } returns knowledgeEntry(entryId)
+
+        val result = hybridService.answerQuestion("Jakie jest prawo Ohma?", listOf(null), tenantId)
+
+        assertEquals("U = I * R", result.answer)
+        assertEquals(ResponseSource.KNOWLEDGE_BASE, result.source)
+        assertEquals(0.9, result.confidence)
+        verify(exactly = 0) { knowledgeRepository.findSimilarWithScore(any(), any(), any(), any(), any()) }
+        verify(exactly = 0) { llmPort.generate(any(), any()) }
+    }
+
+    @Test
+    fun `reusable answer should use hybrid confidence instead of hardcoded 1`() {
+        val entryId = UUID.randomUUID()
+        val reusable = knowledgeEntry(entryId).copy(answer = "Zweryfikowana", qualityScore = 0.85f, accepted = true)
+        every { knowledgeRepository.findReusableAiAnswer(any(), any(), any()) } returns reusable
+
+        val result = hybridService.answerQuestion("Q?", listOf(null), tenantId)
+
+        assertEquals("Zweryfikowana", result.answer)
+        assertEquals(ResponseSource.KNOWLEDGE_BASE, result.source)
+        assertEquals(0.9625, result.confidence, 0.01)
     }
 
     private fun knowledgeEntry(id: UUID) =

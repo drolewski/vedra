@@ -11,6 +11,7 @@ import io.vedra.domain.prompt.Prompts
 import io.vedra.domain.repository.knowledge.KnowledgeRepository
 import io.vedra.domain.repository.knowledge.SimilarityResultProjection
 import io.vedra.infrastructure.chat.LLMPort
+import io.vedra.infrastructure.config.HybridScoringProperties
 import io.vedra.infrastructure.embedding.EmbeddingPort
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
@@ -28,6 +29,8 @@ class KnowledgeService(
     private val answerNormalizer: AnswerNormalizer,
     private val llmCacheService: LlmCacheService,
     private val embeddingCacheService: EmbeddingCacheService,
+    private val hybridScoringService: HybridScoringService,
+    private val hybridScoringProperties: HybridScoringProperties,
     @Value("\${spring.ai.ollama.chat.options.model:llama3.2}") private val modelVersion: String = "llama3.2",
 ) {
     @Transactional
@@ -46,7 +49,15 @@ class KnowledgeService(
             return AnswerResult(
                 answer = reusable.answer ?: FALLBACK_ANSWER,
                 source = ResponseSource.KNOWLEDGE_BASE,
-                confidence = 1.0,
+                confidence =
+                    hybridScoringService.finalScore(
+                        EXACT_MATCH_SCORE,
+                        reusable.qualityScore.toDouble(),
+                        reusable.lastUsedAt,
+                        reusable.createdAt,
+                        true,
+                        hybridScoringProperties.toWeights(),
+                    ),
                 entryIds = listOf(reusable.id!!),
             )
         }
@@ -67,14 +78,34 @@ class KnowledgeService(
         val embedding = getOrEmbed(question)
         val embeddingString = embedding.toArray().joinToString(",", "[", "]")
 
+        val weights = hybridScoringProperties.toWeights()
         val similarEntries =
-            knowledgeRepository.findSimilarWithScore(
-                tenantId = tenantId,
-                projectIds = projectIds,
-                embedding = embeddingString,
-                limit = 3,
-                minScore = MIN_CONFIDENCE,
-            )
+            if (hybridScoringProperties.enabled) {
+                knowledgeRepository
+                    .findSimilarWithHybridScore(
+                        tenantId = tenantId,
+                        projectIds = projectIds,
+                        embedding = embeddingString,
+                        limit = 3,
+                        minScore = MIN_CONFIDENCE,
+                        weights = weights,
+                    ).also { results ->
+                        log.debug {
+                            "Hybrid scoring weights=$weights results=" +
+                                results.joinToString {
+                                    "${it.id}: final=${it.finalScore} semantic=${it.semanticScore} quality=${it.qualityScore}"
+                                }
+                        }
+                    }
+            } else {
+                knowledgeRepository.findSimilarWithScore(
+                    tenantId = tenantId,
+                    projectIds = projectIds,
+                    embedding = embeddingString,
+                    limit = 3,
+                    minScore = MIN_CONFIDENCE,
+                )
+            }
 
         if (similarEntries.isNotEmpty()) {
             val acceptedEntries = similarEntries.filter { it.accepted }
@@ -116,13 +147,24 @@ class KnowledgeService(
 
     private fun resolveCachedConfidence(cached: io.vedra.domain.model.LlmResponseCacheEntry): Double {
         val base = cached.confidence ?: 0.0
-        if (base >= VERIFIED_CONFIDENCE || cached.contextEntryIds.isEmpty()) return base
+        if (!hybridScoringProperties.enabled || cached.contextEntryIds.isEmpty()) return base
         return try {
-            val confirmed =
-                knowledgeRepository.findByIds(cached.contextEntryIds).any {
-                    it.accepted && it.answerSource == AnswerSource.AI_GENERATED
-                }
-            if (confirmed) VERIFIED_CONFIDENCE else base
+            val weights = hybridScoringProperties.toWeights()
+            val recomputed =
+                knowledgeRepository
+                    .findByIds(cached.contextEntryIds)
+                    .filter { it.accepted && it.answerSource == AnswerSource.AI_GENERATED }
+                    .maxOfOrNull {
+                        hybridScoringService.finalScore(
+                            EXACT_MATCH_SCORE,
+                            it.qualityScore.toDouble(),
+                            it.lastUsedAt,
+                            it.createdAt,
+                            true,
+                            weights,
+                        )
+                    }
+            maxOf(base, recomputed ?: base)
         } catch (e: Exception) {
             log.warn(e) { "Failed to resolve cached confidence, returning stored value" }
             base
@@ -131,8 +173,17 @@ class KnowledgeService(
 
     private fun resolveCachedSource(cached: io.vedra.domain.model.LlmResponseCacheEntry): ResponseSource {
         if (cached.responseSource == ResponseSource.KNOWLEDGE_BASE) return cached.responseSource
-        if (resolveCachedConfidence(cached) >= VERIFIED_CONFIDENCE) return ResponseSource.KNOWLEDGE_BASE
-        return cached.responseSource
+        if (!hybridScoringProperties.enabled) return cached.responseSource
+        return try {
+            val verified =
+                knowledgeRepository.findByIds(cached.contextEntryIds).any {
+                    it.accepted && it.answerSource == AnswerSource.AI_GENERATED
+                }
+            if (verified) ResponseSource.KNOWLEDGE_BASE else cached.responseSource
+        } catch (e: Exception) {
+            log.warn(e) { "Failed to resolve cached source, returning stored value" }
+            cached.responseSource
+        }
     }
 
     private fun findReusableAiAnswer(
@@ -303,7 +354,7 @@ class KnowledgeService(
         private const val HIGH_CONFIDENCE = 0.85
         private const val MEDIUM_CONFIDENCE = 0.65
         private const val MIN_CONFIDENCE = MEDIUM_CONFIDENCE
-        private const val VERIFIED_CONFIDENCE = 1.0
+        private const val EXACT_MATCH_SCORE = 1.0
 
         private const val FALLBACK_ANSWER = "Nie udało się wygenerować odpowiedzi."
 

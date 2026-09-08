@@ -58,3 +58,17 @@ fun SimilarityResultProjection.toDomain(): DomainSimilarityResultProjection =
         accepted = this.accepted,
         score = this.score,
     )
+
+fun HybridSimilarityResultProjection.toDomain(): DomainSimilarityResultProjection =
+    DomainSimilarityResultProjection(
+        id = this.id,
+        content = this.content,
+        answer = this.answer,
+        source = this.source,
+        accepted = this.accepted,
+        score = this.finalScore,
+        semanticScore = this.semanticScore,
+        qualityScore = this.qualityScore,
+        finalScore = this.finalScore,
+        lastUsedAt = this.lastUsedAt,
+    )
