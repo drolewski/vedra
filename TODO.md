@@ -1,50 +1,15 @@
 # TODOS
 
-## Next steps
-* Dodanie wiadomości powinno zbierać dane do RAGa, 
-  zapisywanie do projektów w ramach tenant
-* Wywołanie wiadomości z @Vedra powinno odpowiadać na pytania
-* Jeżeli odpowiedź okazała się niepomocna to:
-  * wywal ja z pamięci
-  * poproś o pomoc eksperta - wiadomośc zachęcająća i po odp. w wątku analiza kontekstowa i zapis do raga.
-* Czy MCP może jakoś pomóc w rozwiązaniu?
-* Usprawnienia kodu
-* normalizacja danych wejściowych i wyjściowych
-* obsługa branży projektowej w przechowywaniu projektowym
-* Przechowywanie wyników LLM zamiast wielokrotnych calli
-* Testy E2e
-
 ## Dalej
-7. Integracja z teams
-8. Integracja z Gemini dla lepszych promptów :)
-9. Zbieranie danych z dokumentów fizycznych
-10. Tłumaczenia odpowiedzi/komunikatów statycznych i wybieranie jej na podstawie języka użytkownika
+8. Dodanie Test Planu dla funkcjonalności
+9. Tłumaczenia odpowiedzi/komunikatów statycznych i wybieranie jej na podstawie języka użytkownika
+10. Dzialanie procesu definiowania branży, czy potrzebne są tutaj jakieś dodatkowe informacje, czy wystarczy nazwa branży i opis
+11. Funkcja umozliwiająca publikowanie danych z prywatnych kanałów do general, aby mogły być analizowane przez AI
+12. Zbieranie danych z dokumentów fizycznych
+13. Integracja z Gemini dla lepszych promptów :)
+14. Integracja z teams oraz google chat
 
-## Testy E2E całego rozwiązania,
-* Czy wywołanie jakiejkolwiek operacji tworzy tenanta?
-* Czy działa dodawanie industry PER TENANT
-* Czy działają operacje commandy slackowe
-* Czy działa feedback?
-* Czy wszystkie dane są zamknięte per tenant w odpowiedni sposóļ?
 -----
-1. Logger
-2. Konfiguracja serwera aplikacji :)
-3. Metryki?
-
----
-Slack
-* Jak zbierać dane z kanałów?
-  * może wiadomości pisane
-* Jak odpowiadać na pytania?
-  * może wiadomości z tagiem @Vedra 
-  * może na odpowiednio skonfigurowanych kanałach?
-* Kiedy pytać o feedback
-  * przy każdej odpowiedzi
-  * przy każdej odpowiedzi, która została wygenerowana przez AI
-* Jak zbierać odpowiedzi ekspertów
-  * jako wiadomości z kanałów?
-* Jak działa apka zainstalowana na profilu firmowym?
-  * Czy jest dostępna na wszystkich kanałach
 
 ---
 # Pakiety -> Wycenić
