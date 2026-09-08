@@ -8,6 +8,11 @@ interface TenantProjectRepository {
 
     fun findByTenantIdAndIsGeneralTrue(tenantId: UUID): TenantProject?
 
+    fun findByTenantIdAndId(
+        tenantId: UUID,
+        id: String,
+    ): TenantProject?
+
     fun findByTenantIdAndName(
         tenantId: UUID,
         name: String,

@@ -41,10 +41,10 @@ class TenantProjectService(
     fun linkChannelToProject(
         tenantId: UUID,
         channelId: String,
-        projectName: String,
+        projectId: String,
     ): LinkResult {
         val project =
-            tenantProjectRepository.findByTenantIdAndName(tenantId, projectName)
+            tenantProjectRepository.findByTenantIdAndId(tenantId, projectId)
                 ?: return LinkResult.PROJECT_NOT_FOUND
 
         if (project.isGeneral) {

@@ -31,8 +31,8 @@ class SlackCommandParser {
         return when (action) {
             "create" -> CreateProjectCommand(triggerId, channelId, workspaceId)
             "link" -> {
-                val projectName = text.trim().split("\\s+".toRegex(), limit = 2).getOrNull(1) ?: ""
-                LinkProjectCommand(workspaceId, channelId, projectName)
+                val projectId = text.trim().split("\\s+".toRegex(), limit = 2).getOrNull(1) ?: ""
+                LinkProjectCommand(workspaceId, channelId, projectId)
             }
             "unlink" -> UnlinkProjectCommand(channelId)
             "list" -> ListProjectsCommand(workspaceId)

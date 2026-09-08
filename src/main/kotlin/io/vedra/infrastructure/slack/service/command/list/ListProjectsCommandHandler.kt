@@ -26,7 +26,7 @@ class ListProjectsCommandHandler(
                     if (project.isGeneral) tags.add("ogólna")
                     project.industry?.let { tags.add("branża: $it") }
                     val label = if (tags.isNotEmpty()) "(${tags.joinToString(", ")})" else ""
-                    "• *${project.name}* $label"
+                    "• *${project.id}*: ${project.name} $label"
                 }
 
             "Dostępne projekty:\n${lines.joinToString("\n")}"

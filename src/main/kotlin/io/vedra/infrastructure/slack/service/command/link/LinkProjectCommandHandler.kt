@@ -15,10 +15,10 @@ class LinkProjectCommandHandler(
 
     override fun handle(command: LinkProjectCommand): String =
         tenantResolver.withTenant(command.workspaceId) { tenant ->
-            when (tenantProjectService.linkChannelToProject(tenant.id!!, command.channelId, command.projectName)) {
-                LinkResult.SUCCESS -> "Kanał powiązany z projektem *${command.projectName}*"
+            when (tenantProjectService.linkChannelToProject(tenant.id!!, command.channelId, command.projectId)) {
+                LinkResult.SUCCESS -> "Kanał powiązany z projektem *${command.projectId}*"
                 LinkResult.PROJECT_NOT_FOUND ->
-                    "Projekt *${command.projectName}* nie istnieje. Użyj `/vedra list` aby zobaczyć dostępne projekty."
+                    "Projekt *${command.projectId}* nie istnieje. Użyj `/vedra list` aby zobaczyć dostępne projekty."
 
                 LinkResult.CANNOT_LINK_GENERAL -> "Nie można powiązać kanału z projektem ogólnym."
             }

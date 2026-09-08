@@ -8,6 +8,11 @@ interface SpringDataTenantProjectRepository : JpaRepository<TenantProject, UUID>
 
     fun findByTenantIdAndIsGeneralTrue(tenantId: UUID): TenantProject?
 
+    fun findByTenantIdAndId(
+        tenantId: UUID,
+        id: UUID,
+    ): TenantProject?
+
     fun findByTenantIdAndName(
         tenantId: UUID,
         name: String,

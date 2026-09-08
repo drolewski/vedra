@@ -14,6 +14,11 @@ class JpaTenantProjectRepository(
     override fun findByTenantIdAndIsGeneralTrue(tenantId: UUID): DomainTenantProject? =
         springDataRepo.findByTenantIdAndIsGeneralTrue(tenantId)?.toDomain()
 
+    override fun findByTenantIdAndId(
+        tenantId: UUID,
+        id: String,
+    ): DomainTenantProject? = springDataRepo.findByTenantIdAndId(tenantId, UUID.fromString(id))?.toDomain()
+
     override fun findByTenantIdAndName(
         tenantId: UUID,
         name: String,
