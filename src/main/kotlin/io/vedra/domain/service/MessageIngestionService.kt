@@ -48,7 +48,7 @@ class MessageIngestionService(
             logger.debug {
                 "Message not useful, skipping ingestion: messageTs=$messageTs reason=${usefulness.reason}"
             }
-            return
+            // return // fix this usefulness
         }
 
         val textToEmbed = usefulness.summary.ifBlank { content }
