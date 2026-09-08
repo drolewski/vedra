@@ -8,6 +8,8 @@
 12. Zbieranie danych z dokumentów fizycznych
 13. Integracja z Gemini dla lepszych promptów :)
 14. Integracja z teams oraz google chat
+15. Egzekucja pakietów w zależności od wybranego planu
+16. Dashboard zarządzania pakietami
 
 -----
 

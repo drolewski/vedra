@@ -1,35 +1,22 @@
 package io.vedra.domain.service
 
-import io.github.oshai.kotlinlogging.KotlinLogging
 import io.vedra.domain.model.Tenant
-import io.vedra.domain.repository.tenant.TenantRepository
 import org.springframework.stereotype.Service
-
-private val logger = KotlinLogging.logger {}
 
 @Service
 class TenantService(
-    private val tenantRepository: TenantRepository,
+    private val provisioningService: TenantProvisioningService,
 ) {
     fun resolveByExternalId(
         externalId: String?,
         workspaceName: String?,
+        installerUserId: String? = null,
     ): Tenant {
         if (externalId.isNullOrBlank()) {
             throw TenantExternalIdMissingException()
         }
 
-        return tenantRepository.findByExternalId(externalId)
-            ?: createTenant(externalId, workspaceName)
-    }
-
-    private fun createTenant(
-        externalId: String,
-        workspaceName: String?,
-    ): Tenant {
-        val name = workspaceName ?: externalId
-        logger.info { "Creating new tenant for externalId=$externalId name=$name" }
-        return tenantRepository.save(Tenant(name = name, externalId = externalId))
+        return provisioningService.provisionTenant(externalId, workspaceName, installerUserId).tenant
     }
 }
 
