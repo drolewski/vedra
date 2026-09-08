@@ -6,10 +6,13 @@
 9. uproszczenie modeli
 10. rozpisanie scenariuszy testowych potwierdzających jakość odpowiedzi
 
-
 8. Funkcjonalne przetestowanie całego flow (onboarding, tworzenie projektu, konfiguracja, zbieranie wiedzy, reagowanie na pytania)
 9. Pytania powinny być rozpoznawane na podstawie intencji, a nie na podstawie słów kluczowych itp.
 
+1. Poprawa algorytmu pewności, aktualnie max to 85%, tak być nie powinno. 
+    Reorganizacja algorytmu tak żeby było to blizej pewnosci i oceny miały minimalny wpływ i sens ;)
+    Tak żeby oceny też wpływały na to co algorytm odpowie między sesjami w przypadku niskiej pewności
+2. Dodanie funkcji, aby dla niskiej pewności stworzył nową odpowiedź bazującą na innych kontekstach/llmach ragach
 
 9. Tłumaczenia odpowiedzi/komunikatów statycznych i wybieranie jej na podstawie języka użytkownika
 10. Dzialanie procesu definiowania branży, czy potrzebne są tutaj jakieś dodatkowe informacje, czy wystarczy nazwa branży i opis
@@ -18,7 +21,7 @@
 13. Integracja z Gemini dla lepszych promptów :)
 14. Integracja z teams oraz google chat
 15. Egzekucja pakietów w zależności od wybranego planu
-16. Dashboard zarządzania pakietami
+16. Dashboard zarządzania pakietami subskrypcjami + pilnowanie limitów
 17. Komunikat o instalacji vedra zamiast tej śmiesznej strony xD
 
 -----
