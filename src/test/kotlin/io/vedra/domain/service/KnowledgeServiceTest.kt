@@ -17,6 +17,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 
 class KnowledgeServiceTest {
+    private val tenantId: UUID = UUID.randomUUID()
     private val knowledgeRepository: KnowledgeRepository = mockk(relaxed = true)
     private val embeddingPort: EmbeddingPort = mockk()
     private val llmPort: LLMPort = mockk()
@@ -81,7 +82,7 @@ class KnowledgeServiceTest {
             )
         every { knowledgeRepository.findById(entryId) } returns entry
 
-        val result = service.answerQuestion("Jakie jest prawo Ohma?")
+        val result = service.answerQuestion("Jakie jest prawo Ohma?", listOf(null), tenantId)
 
         assertEquals("U = I * R", result.answer)
         assertEquals(ResponseSource.KNOWLEDGE_BASE, result.source)
@@ -109,7 +110,7 @@ class KnowledgeServiceTest {
             )
         every { llmPort.generate(any(), any()) } returns "Na podstawie wiedzy: izolacja przeciwwodna typu ciężkiego."
 
-        val result = service.answerQuestion("Jaka izolacja na fundament?")
+        val result = service.answerQuestion("Jaka izolacja na fundament?", listOf(null), tenantId)
 
         assertEquals("Na podstawie wiedzy: izolacja przeciwwodna typu ciężkiego.", result.answer)
         assertEquals(ResponseSource.AI_WITH_CONTEXT, result.source)
@@ -125,7 +126,7 @@ class KnowledgeServiceTest {
         } returns emptyList()
         every { llmPort.generate(any(), any()) } returns "Odpowiedź ogólna z LLM."
 
-        val result = service.answerQuestion("Co to jest beton?")
+        val result = service.answerQuestion("Co to jest beton?", listOf(null), tenantId)
 
         assertEquals("Odpowiedź ogólna z LLM.", result.answer)
         assertEquals(ResponseSource.AI_GENERAL, result.source)
@@ -146,7 +147,7 @@ class KnowledgeServiceTest {
         } returns emptyList()
         every { llmPort.generate(any(), any()) } returns "Brak informacji, LLM odpowiada."
 
-        val result = service.answerQuestion("Pytanie?")
+        val result = service.answerQuestion("Pytanie?", listOf(null), tenantId)
 
         assertEquals(ResponseSource.AI_GENERAL, result.source)
     }
@@ -170,7 +171,7 @@ class KnowledgeServiceTest {
             )
         every { llmPort.generate(any(), any()) } returns "Brak informacji w bazie wiedzy na ten temat."
 
-        val result = service.answerQuestion("Pytanie?")
+        val result = service.answerQuestion("Pytanie?", listOf(null), tenantId)
 
         assertEquals("Poprzednia odpowiedź AI", result.answer)
         assertEquals(ResponseSource.AI_WITH_CONTEXT, result.source)
@@ -196,7 +197,7 @@ class KnowledgeServiceTest {
             )
         every { llmPort.generate(any(), any()) } returns null
 
-        val result = service.answerQuestion("Pytanie?")
+        val result = service.answerQuestion("Pytanie?", listOf(null), tenantId)
 
         assertEquals("Zapisana odpowiedź", result.answer)
         assertEquals(ResponseSource.AI_WITH_CONTEXT, result.source)
@@ -222,7 +223,7 @@ class KnowledgeServiceTest {
             )
         every { knowledgeRepository.findById(entryId) } returns entry
 
-        service.answerQuestion("Test?")
+        service.answerQuestion("Test?", listOf(null), tenantId)
 
         verify { knowledgeRepository.save(match { it.usageCount == 1 }) }
     }
@@ -246,7 +247,7 @@ class KnowledgeServiceTest {
             )
         every { llmPort.generate(any(), any()) } returns "AI answer"
 
-        service.answerQuestion("Test?")
+        service.answerQuestion("Test?", listOf(null), tenantId)
 
         verify {
             knowledgeRepository.save(
@@ -261,7 +262,7 @@ class KnowledgeServiceTest {
     fun `addKnowledge should save with USER_VERIFIED source`() {
         every { knowledgeRepository.save(any()) } answers { firstArg() }
 
-        val result = service.addKnowledge("Pytanie", "Odpowiedź")
+        val result = service.addKnowledge("Pytanie", "Odpowiedź", null, tenantId)
 
         assertEquals(AnswerSource.USER_VERIFIED, result.answerSource)
         assertEquals(true, result.accepted)
@@ -276,7 +277,7 @@ class KnowledgeServiceTest {
         } returns emptyList()
         every { llmPort.generate(any(), any()) } returns null
 
-        val result = service.answerQuestion("Pytanie?")
+        val result = service.answerQuestion("Pytanie?", listOf(null), tenantId)
 
         assertEquals("Nie udało się wygenerować odpowiedzi.", result.answer)
         assertEquals(ResponseSource.AI_GENERAL, result.source)
@@ -301,7 +302,7 @@ class KnowledgeServiceTest {
             )
         every { llmPort.generate(any(), any()) } returns "LLM odpowiedź z kontekstem."
 
-        val result = service.answerQuestion("Pytanie?")
+        val result = service.answerQuestion("Pytanie?", listOf(null), tenantId)
 
         assertEquals(ResponseSource.AI_WITH_CONTEXT, result.source)
         assertEquals(0.92, result.confidence)
@@ -337,17 +338,30 @@ class KnowledgeServiceTest {
             )
         every { knowledgeRepository.findById(acceptedId) } returns entry
 
-        val result = service.answerQuestion("Pytanie?")
+        val result = service.answerQuestion("Pytanie?", listOf(null), tenantId)
 
         assertEquals(ResponseSource.KNOWLEDGE_BASE, result.source)
         assertEquals("Sprawdzona odpowiedź", result.answer)
         verify(exactly = 0) { llmPort.generate(any(), any()) }
     }
 
+    @Test
+    fun `should pass real tenantId to similarity search`() {
+        every {
+            knowledgeRepository.findSimilarWithScore(any(), any(), any(), any(), any())
+        } returns emptyList()
+        every { llmPort.generate(any(), any()) } returns "Odp."
+
+        service.answerQuestion("Pytanie?", listOf(null), tenantId)
+
+        verify { knowledgeRepository.findSimilarWithScore(tenantId, any(), any(), any(), any()) }
+        verify { llmCacheService.lookup(tenantId, any(), any()) }
+    }
+
     private fun knowledgeEntry(id: UUID) =
         KnowledgeEntry(
             id = id,
-            tenantId = KnowledgeService.TENANT_ID,
+            tenantId = tenantId,
             source = KnowledgeSourceType.FAQ,
             content = "Test",
             answer = "Answer",

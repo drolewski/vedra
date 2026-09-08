@@ -30,17 +30,6 @@ class KnowledgeService(
     private val embeddingCacheService: EmbeddingCacheService,
     @Value("\${spring.ai.ollama.chat.options.model:llama3.2}") private val modelVersion: String = "llama3.2",
 ) {
-    @Deprecated("Use answerQuestion(question, projectIds, tenantId) with real tenant")
-    @Transactional
-    fun answerQuestion(question: String): AnswerResult = answerQuestion(question, listOf(null), TENANT_ID)
-
-    @Deprecated("Use answerQuestion(question, projectIds, tenantId) with real tenant")
-    @Transactional
-    fun answerQuestion(
-        question: String,
-        projectIds: List<UUID?>,
-    ): AnswerResult = answerQuestion(question, projectIds, TENANT_ID)
-
     @Transactional
     fun answerQuestion(
         question: String,
@@ -101,21 +90,6 @@ class KnowledgeService(
 
         return answerWithoutContext(normalized, tenantId)
     }
-
-    @Deprecated("Use addKnowledge(question, answer, projectId, tenantId) with real tenant")
-    @Transactional
-    fun addKnowledge(
-        question: String,
-        answer: String,
-    ): KnowledgeEntry = addKnowledge(question, answer, null, TENANT_ID)
-
-    @Deprecated("Use addKnowledge(question, answer, projectId, tenantId) with real tenant")
-    @Transactional
-    fun addKnowledge(
-        question: String,
-        answer: String,
-        projectId: UUID?,
-    ): KnowledgeEntry = addKnowledge(question, answer, projectId, TENANT_ID)
 
     @Transactional
     fun addKnowledge(
@@ -305,8 +279,6 @@ class KnowledgeService(
         }
 
     companion object {
-        val TENANT_ID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB")
-
         private const val HIGH_CONFIDENCE = 0.85
         private const val MEDIUM_CONFIDENCE = 0.65
         private const val MIN_CONFIDENCE = MEDIUM_CONFIDENCE

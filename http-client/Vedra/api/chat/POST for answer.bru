@@ -10,6 +10,10 @@ post {
   auth: inherit
 }
 
+headers {
+  X-Tenant-Id: {{tenantId}}
+}
+
 body:json {
   {
     "question": "jak wylać fundamenty na budowie?"
