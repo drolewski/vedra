@@ -20,11 +20,43 @@ class KnowledgeServiceTest {
     private val knowledgeRepository: KnowledgeRepository = mockk(relaxed = true)
     private val embeddingPort: EmbeddingPort = mockk()
     private val llmPort: LLMPort = mockk()
-    private val service = KnowledgeService(knowledgeRepository, embeddingPort, llmPort)
+    private val questionNormalizer: QuestionNormalizer = mockk(relaxed = true)
+    private val answerNormalizer: AnswerNormalizer = mockk(relaxed = true)
+    private val llmCacheService: LlmCacheService = mockk(relaxed = true)
+    private val embeddingCacheService: EmbeddingCacheService = mockk(relaxed = true)
+    private val service =
+        KnowledgeService(
+            knowledgeRepository,
+            embeddingPort,
+            llmPort,
+            questionNormalizer,
+            answerNormalizer,
+            llmCacheService,
+            embeddingCacheService,
+        )
 
     init {
         every { embeddingPort.embed(any()) } returns PGvector(FloatArray(768) { 0.1f })
         every { knowledgeRepository.save(any()) } answers { firstArg() }
+        every { knowledgeRepository.findReusableAiAnswer(any(), any(), any()) } returns null
+        every { knowledgeRepository.findByContentHash(any(), any(), any()) } returns null
+        every { questionNormalizer.normalize(any(), any()) } answers {
+            val question = it.invocation.args[0] as String
+            val project = it.invocation.args[1] as? UUID
+            io.vedra.domain.model.NormalizedQuestion(
+                original = question,
+                normalized = question.lowercase(),
+                hash = "test-hash-$question",
+                projectId = project,
+            )
+        }
+        every { answerNormalizer.normalize(any()) } answers {
+            val response = it.invocation.args[0] as String
+            io.vedra.domain.model.NormalizedAnswer(
+                original = response,
+                normalized = response,
+            )
+        }
     }
 
     @Test

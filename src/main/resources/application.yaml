@@ -54,3 +54,12 @@ outbox:
   poll-interval: 5000
   cleanup-cron: "0 0 3 * * *"
   cleanup-retention-days: 7
+
+vedra:
+  cache:
+    llm:
+      enabled: true
+      ttl-days: 30
+    embedding:
+      enabled: true
+      ttl-days: 90

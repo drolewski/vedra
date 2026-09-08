@@ -24,6 +24,18 @@ interface KnowledgeRepository {
         limit: Int = 5,
         minScore: Double = 0.9,
     ): List<SimilarityResultProjection>
+
+    fun findByContentHash(
+        tenantId: UUID,
+        projectId: UUID?,
+        contentHash: String,
+    ): KnowledgeEntry?
+
+    fun findReusableAiAnswer(
+        tenantId: UUID,
+        projectId: UUID?,
+        contentHash: String,
+    ): KnowledgeEntry?
 }
 
 data class SimilarityResultProjection(

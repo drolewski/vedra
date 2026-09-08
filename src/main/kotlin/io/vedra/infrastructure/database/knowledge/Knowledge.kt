@@ -60,6 +60,12 @@ data class KnowledgeEntry(
     var accepted: Boolean = true,
     @Column(name = "created_at", nullable = false, updatable = false)
     val createdAt: Instant = Instant.now(),
+    @Column(name = "normalized_content", columnDefinition = "TEXT")
+    val normalizedContent: String? = null,
+    @Column(name = "content_hash", length = 64)
+    val contentHash: String? = null,
+    @Column(name = "reused_count", nullable = false)
+    var reusedCount: Int = 0,
 ) {
     constructor() : this(
         tenantId = UUID.randomUUID(),

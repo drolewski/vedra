@@ -32,4 +32,16 @@ class JpaKnowledgeRepository(
         minScore: Double,
     ): List<DomainSimilarityResultProjection> =
         springDataRepo.findSimilarGeneralOnly(tenantId, embedding, limit, minScore).map { it.toDomain() }
+
+    override fun findByContentHash(
+        tenantId: UUID,
+        projectId: UUID?,
+        contentHash: String,
+    ): DomainKnowledgeEntry? = springDataRepo.findByContentHash(tenantId, projectId, contentHash)?.toDomain()
+
+    override fun findReusableAiAnswer(
+        tenantId: UUID,
+        projectId: UUID?,
+        contentHash: String,
+    ): DomainKnowledgeEntry? = springDataRepo.findReusableAiAnswer(tenantId, projectId, contentHash)?.toDomain()
 }

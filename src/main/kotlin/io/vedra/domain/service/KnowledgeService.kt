@@ -1,24 +1,34 @@
 package io.vedra.domain.service
 
+import io.github.oshai.kotlinlogging.KotlinLogging
 import io.vedra.domain.model.AnswerResult
 import io.vedra.domain.model.AnswerSource
 import io.vedra.domain.model.KnowledgeEntry
 import io.vedra.domain.model.KnowledgeSourceType
+import io.vedra.domain.model.NormalizedQuestion
 import io.vedra.domain.model.ResponseSource
 import io.vedra.domain.prompt.Prompts
 import io.vedra.domain.repository.knowledge.KnowledgeRepository
 import io.vedra.domain.repository.knowledge.SimilarityResultProjection
 import io.vedra.infrastructure.chat.LLMPort
 import io.vedra.infrastructure.embedding.EmbeddingPort
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.util.UUID
+
+private val log = KotlinLogging.logger {}
 
 @Service
 class KnowledgeService(
     private val knowledgeRepository: KnowledgeRepository,
     private val embeddingPort: EmbeddingPort,
     private val llmPort: LLMPort,
+    private val questionNormalizer: QuestionNormalizer,
+    private val answerNormalizer: AnswerNormalizer,
+    private val llmCacheService: LlmCacheService,
+    private val embeddingCacheService: EmbeddingCacheService,
+    @Value("\${spring.ai.ollama.chat.options.model:llama3.2}") private val modelVersion: String = "llama3.2",
 ) {
     @Transactional
     fun answerQuestion(question: String): AnswerResult = answerQuestion(question, listOf(null))
@@ -28,7 +38,35 @@ class KnowledgeService(
         question: String,
         projectIds: List<UUID?>,
     ): AnswerResult {
-        val embedding = embeddingPort.embed(question)
+        val projectId = projectIds.firstOrNull()
+        val normalized = questionNormalizer.normalize(question, projectId)
+
+        // Priority 1: Check for reusable AI answer in knowledge_entries
+        findReusableAiAnswer(normalized)?.let { reusable ->
+            log.debug { "Reusing existing AI answer for hash=${normalized.hash}" }
+            incrementReusedCount(reusable)
+            return AnswerResult(
+                answer = reusable.answer ?: FALLBACK_ANSWER,
+                source = ResponseSource.KNOWLEDGE_BASE,
+                confidence = 1.0,
+                entryIds = listOf(reusable.id!!),
+            )
+        }
+
+        // Priority 2: Check LLM cache
+        val cachedAnswer = llmCacheService.lookup(TENANT_ID, projectId, normalized.hash)
+        if (cachedAnswer != null) {
+            log.debug { "LLM cache hit for hash=${normalized.hash}" }
+            return AnswerResult(
+                answer = cachedAnswer.answer,
+                source = cachedAnswer.responseSource,
+                confidence = cachedAnswer.confidence ?: 0.0,
+                entryIds = cachedAnswer.contextEntryIds,
+            )
+        }
+
+        // Priority 3 & 4: Embedding + similarity search + LLM
+        val embedding = getOrEmbed(question)
         val embeddingString = embedding.toArray().joinToString(",", "[", "]")
 
         val similarEntries =
@@ -48,11 +86,11 @@ class KnowledgeService(
             }
 
             if (similarEntries.first().score >= MEDIUM_CONFIDENCE) {
-                return answerWithContext(question, similarEntries)
+                return answerWithContext(normalized, similarEntries)
             }
         }
 
-        return answerWithoutContext(question)
+        return answerWithoutContext(normalized)
     }
 
     @Transactional
@@ -67,16 +105,46 @@ class KnowledgeService(
         answer: String,
         projectId: UUID?,
     ): KnowledgeEntry {
+        val normalized = questionNormalizer.normalize(question, projectId)
+        val normalizedAnswer = answerNormalizer.normalize(answer)
         val entry =
             KnowledgeEntry(
                 tenantId = TENANT_ID,
                 projectId = projectId,
                 source = KnowledgeSourceType.FAQ,
                 content = question,
-                answer = answer,
+                answer = normalizedAnswer.normalized,
                 answerSource = AnswerSource.USER_VERIFIED,
+                normalizedContent = normalized.normalized,
+                contentHash = normalized.hash,
             )
         return knowledgeRepository.save(entry)
+    }
+
+    private fun findReusableAiAnswer(normalized: NormalizedQuestion): KnowledgeEntry? =
+        try {
+            knowledgeRepository.findReusableAiAnswer(TENANT_ID, normalized.projectId, normalized.hash)
+        } catch (e: Exception) {
+            log.warn(e) { "Failed to find reusable AI answer" }
+            null
+        }
+
+    private fun incrementReusedCount(entry: KnowledgeEntry) {
+        try {
+            val updated = entry.copy(reusedCount = entry.reusedCount + 1)
+            knowledgeRepository.save(updated)
+        } catch (e: Exception) {
+            log.warn(e) { "Failed to increment reused count for entry ${entry.id}" }
+        }
+    }
+
+    private fun getOrEmbed(text: String): com.pgvector.PGvector {
+        val cached = embeddingCacheService.lookup(text)
+        if (cached != null) return cached
+
+        val embedding = embeddingPort.embed(text)
+        embeddingCacheService.save(text, embedding)
+        return embedding
     }
 
     private fun answerFromKnowledgeBase(entries: List<SimilarityResultProjection>): AnswerResult {
@@ -96,7 +164,7 @@ class KnowledgeService(
     }
 
     private fun answerWithContext(
-        question: String,
+        normalized: NormalizedQuestion,
         entries: List<SimilarityResultProjection>,
     ): AnswerResult {
         val context = buildContext(entries)
@@ -104,13 +172,13 @@ class KnowledgeService(
         val llmAnswer =
             llmPort.generate(
                 Prompts.KnowledgeBase.system,
-                Prompts.KnowledgeBase.userPrompt(context, question),
+                Prompts.KnowledgeBase.userPrompt(context, normalized.original),
             )
 
         if (llmAnswer == null || isNoInfo(llmAnswer)) {
             val fallbackAnswer =
                 entries.firstNotNullOfOrNull { it.answer }
-                    ?: return answerWithoutContext(question)
+                    ?: return answerWithoutContext(normalized)
 
             return AnswerResult(
                 answer = fallbackAnswer,
@@ -120,27 +188,55 @@ class KnowledgeService(
             )
         }
 
-        val savedEntry = saveAiAnswer(question, llmAnswer)
+        val normalizedAnswer = answerNormalizer.normalize(llmAnswer)
+        val savedEntry = saveAiAnswer(normalized, normalizedAnswer.normalized)
+
+        llmCacheService.save(
+            tenantId = TENANT_ID,
+            projectId = normalized.projectId,
+            questionHash = normalized.hash,
+            normalizedQuestion = normalized.normalized,
+            originalQuestion = normalized.original,
+            answer = llmAnswer,
+            modelVersion = modelVersion,
+            confidence = entries.first().score,
+            responseSource = ResponseSource.AI_WITH_CONTEXT,
+            contextEntryIds = entries.map { it.id },
+        )
 
         return AnswerResult(
-            answer = llmAnswer,
+            answer = normalizedAnswer.normalized,
             source = ResponseSource.AI_WITH_CONTEXT,
             confidence = entries.first().score,
             entryIds = entries.map { it.id } + listOfNotNull(savedEntry?.id),
         )
     }
 
-    private fun answerWithoutContext(question: String): AnswerResult {
+    private fun answerWithoutContext(normalized: NormalizedQuestion): AnswerResult {
         val llmAnswer =
             llmPort.generate(
                 Prompts.General.system,
-                Prompts.General.userPrompt(question),
+                Prompts.General.userPrompt(normalized.original),
             ) ?: FALLBACK_ANSWER
 
-        val savedEntry = saveAiAnswer(question, llmAnswer)
+        val normalizedAnswer = answerNormalizer.normalize(llmAnswer)
+        val savedEntry = saveAiAnswer(normalized, normalizedAnswer.normalized)
+
+        llmCacheService.save(
+            tenantId = TENANT_ID,
+            projectId = normalized.projectId,
+            questionHash = normalized.hash,
+            normalizedQuestion = normalized.normalized,
+            originalQuestion = normalized.original,
+            answer = llmAnswer,
+            modelVersion = modelVersion,
+            confidence = 0.0,
+            responseSource = ResponseSource.AI_GENERAL,
+            contextEntryIds = emptyList(),
+        )
 
         return AnswerResult(
-            answer = llmAnswer,
+            answer = normalizedAnswer.normalized,
             source = ResponseSource.AI_GENERAL,
             confidence = 0.0,
             entryIds = listOfNotNull(savedEntry?.id),
@@ -160,20 +256,21 @@ class KnowledgeService(
     }
 
     private fun saveAiAnswer(
-        question: String,
+        normalized: NormalizedQuestion,
         answer: String,
-        projectId: UUID? = null,
     ): KnowledgeEntry? =
         try {
             val entry =
                 KnowledgeEntry(
                     tenantId = TENANT_ID,
-                    projectId = projectId,
+                    projectId = normalized.projectId,
                     source = KnowledgeSourceType.FAQ,
-                    content = question,
+                    content = normalized.original,
                     answer = answer,
                     answerSource = AnswerSource.AI_GENERATED,
                     accepted = false,
+                    normalizedContent = normalized.normalized,
+                    contentHash = normalized.hash,
                 )
             knowledgeRepository.save(entry)
         } catch (_: Exception) {

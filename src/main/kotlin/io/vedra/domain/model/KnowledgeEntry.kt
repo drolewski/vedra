@@ -19,6 +19,9 @@ data class KnowledgeEntry(
     var lastUsedAt: Instant? = null,
     var accepted: Boolean = true,
     val createdAt: Instant = Instant.now(),
+    val normalizedContent: String? = null,
+    val contentHash: String? = null,
+    var reusedCount: Int = 0,
 ) {
     fun markUsed() {
         usageCount++

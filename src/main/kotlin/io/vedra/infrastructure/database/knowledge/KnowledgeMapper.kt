@@ -24,6 +24,9 @@ fun KnowledgeEntry.toDomain(): DomainKnowledgeEntry =
         lastUsedAt = this.lastUsedAt,
         accepted = this.accepted,
         createdAt = this.createdAt,
+        normalizedContent = this.normalizedContent,
+        contentHash = this.contentHash,
+        reusedCount = this.reusedCount,
     )
 
 fun DomainKnowledgeEntry.toEntity(): KnowledgeEntry =
@@ -41,6 +44,9 @@ fun DomainKnowledgeEntry.toEntity(): KnowledgeEntry =
         usageCount = this.usageCount,
         lastUsedAt = this.lastUsedAt,
         accepted = this.accepted,
+        normalizedContent = this.normalizedContent,
+        contentHash = this.contentHash,
+        reusedCount = this.reusedCount,
     )
 
 fun SimilarityResultProjection.toDomain(): DomainSimilarityResultProjection =

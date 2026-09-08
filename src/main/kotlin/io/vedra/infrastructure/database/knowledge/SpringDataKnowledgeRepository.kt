@@ -64,6 +64,41 @@ interface SpringDataKnowledgeRepository : JpaRepository<KnowledgeEntry, UUID> {
         limit: Int = 5,
         minScore: Double = 0.9,
     ): List<SimilarityResultProjection>
+
+    @Query(
+        value = """
+            SELECT * FROM knowledge_entries
+            WHERE tenant_id = :tenantId
+              AND content_hash = :contentHash
+              AND (project_id = :projectId OR (project_id IS NULL AND :projectId IS NULL))
+            LIMIT 1
+        """,
+        nativeQuery = true,
+    )
+    fun findByContentHash(
+        tenantId: UUID,
+        projectId: UUID?,
+        contentHash: String,
+    ): KnowledgeEntry?
+
+    @Query(
+        value = """
+            SELECT * FROM knowledge_entries
+            WHERE tenant_id = :tenantId
+              AND content_hash = :contentHash
+              AND (project_id = :projectId OR (project_id IS NULL AND :projectId IS NULL))
+              AND answer_source = 'AI_GENERATED'
+              AND quality_score >= 0.7
+            ORDER BY quality_score DESC
+            LIMIT 1
+        """,
+        nativeQuery = true,
+    )
+    fun findReusableAiAnswer(
+        tenantId: UUID,
+        projectId: UUID?,
+        contentHash: String,
+    ): KnowledgeEntry?
 }
 
 data class SimilarityResultProjection(

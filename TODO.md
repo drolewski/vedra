@@ -18,6 +18,7 @@
 7. Integracja z teams
 8. Integracja z Gemini dla lepszych promptów :)
 9. Zbieranie danych z dokumentów fizycznych
+10. Tłumaczenia odpowiedzi/komunikatów statycznych i wybieranie jej na podstawie języka użytkownika
 
 ## Testy E2E całego rozwiązania,
 * Czy wywołanie jakiejkolwiek operacji tworzy tenanta?
