@@ -20,12 +20,16 @@ class StatusCommandHandler(
             val status = tenantProjectService.getChannelStatus(command.channelId, tenant.id!!)
 
             if (status.isLinked) {
-                "Ten kanał jest powiązany z projektem *${status.projectName}*.\n" +
-                    "Odpowiedzi będą szukane w bazie projektu + baza publiczna."
+                "*Konfiguracja przestrzeni tego kanału*\n" +
+                    "• Nazwa: *${status.projectName}*\n" +
+                    "• Opis: ${status.description ?: "—"}\n" +
+                    "• Branża: ${status.industry ?: "nie ustawiono"}\n" +
+                    "Odpowiedzi szukane w tej przestrzeni + baza publiczna.\n" +
+                    "Zmień przez `/vedra config`."
             } else {
-                "Ten kanał nie ma własnego projektu.\n" +
-                    "Odpowiedzi będą szukane tylko w bazie publicznej.\n" +
-                    "Użyj `/vedra create` aby utworzyć projekt dla tego kanału."
+                "Ten kanał nie ma jeszcze własnej przestrzeni.\n" +
+                    "Odpowiedzi szukane tylko w bazie publicznej.\n" +
+                    "Uruchom `/vedra config`, aby utworzyć i skonfigurować przestrzeń."
             }
         }
     }

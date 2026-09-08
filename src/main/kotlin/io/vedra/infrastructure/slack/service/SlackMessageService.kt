@@ -21,6 +21,14 @@ class SlackMessageService(
         slackClient.postThreadMessage(channel, threadTs, text)
     }
 
+    fun sendChannelMessage(
+        channel: String,
+        text: String,
+    ) {
+        logger.debug { "Sending channel message to channel=$channel" }
+        slackClient.postChannelMessage(channel, text)
+    }
+
     fun sendThreadMessageWithFeedback(
         channel: String,
         threadTs: String,

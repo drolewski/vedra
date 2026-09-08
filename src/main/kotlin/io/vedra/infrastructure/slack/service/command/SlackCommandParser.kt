@@ -1,6 +1,7 @@
 package io.vedra.infrastructure.slack.service.command
 
 import io.github.oshai.kotlinlogging.KotlinLogging
+import io.vedra.infrastructure.slack.service.command.config.ConfigCommand
 import io.vedra.infrastructure.slack.service.command.create.CreateProjectCommand
 import io.vedra.infrastructure.slack.service.command.help.HelpCommand
 import io.vedra.infrastructure.slack.service.command.link.LinkProjectCommand
@@ -37,6 +38,7 @@ class SlackCommandParser {
             "unlink" -> UnlinkProjectCommand(channelId)
             "list" -> ListProjectsCommand(workspaceId)
             "status" -> StatusCommand(channelId, workspaceId)
+            "config" -> ConfigCommand(channelId, workspaceId, triggerId)
             else -> HelpCommand()
         }
     }

@@ -83,4 +83,26 @@ class SlackClientAdapter(
             logger.warn(e) { "Failed to get team name for teamId=$teamId" }
             null
         }
+
+    override fun getChannelName(channelId: String): String? =
+        try {
+            val response = slackApp.client().conversationsInfo { req -> req.channel(channelId) }
+            if (response.isOk) response.channel.name else null
+        } catch (e: Exception) {
+            logger.warn(e) { "Failed to get channel name for channelId=$channelId" }
+            null
+        }
+
+    override fun postChannelMessage(
+        channel: String,
+        text: String,
+    ) {
+        try {
+            slackApp.client().chatPostMessage { req ->
+                req.channel(channel).text(text)
+            }
+        } catch (e: Exception) {
+            throw SlackApiException("Failed to post channel message to channel $channel", e)
+        }
+    }
 }

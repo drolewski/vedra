@@ -38,12 +38,12 @@ class SlackInteractiveRequestHandler(
         val teamId = team?.get("id") as? String ?: return ResponseEntity.ok().build()
         val callbackId = view["callback_id"] as? String
 
-        if (callbackId != SlackModalService.CALLBACK_CREATE_PROJECT) {
-            return ResponseEntity.ok().build()
-        }
-
         val channelId = (view["private_metadata"] as? String)?.takeIf { it.isNotBlank() }
-        return processCreateProjectSubmission(view, teamId, channelId)
+        return when (callbackId) {
+            SlackModalService.CALLBACK_CREATE_PROJECT -> processCreateProjectSubmission(view, teamId, channelId)
+            SlackModalService.CALLBACK_CONFIG_PROJECT -> processConfigProjectSubmission(view, teamId, channelId)
+            else -> ResponseEntity.ok().build()
+        }
     }
 
     private fun processCreateProjectSubmission(
@@ -87,6 +87,13 @@ class SlackInteractiveRequestHandler(
 
         val tenantResult =
             tenantResolver.withTenantResult(teamId) { tenant ->
+                if (channelId != null && tenantProjectService.getChannelStatus(channelId, tenant.id!!).isLinked) {
+                    val linked = tenantProjectService.getLinkedProject(channelId, tenant.id!!)
+                    logger.info { "Create on already linked channel=$channelId, redirecting to config" }
+                    return@withTenantResult buildInfoResponse(
+                        "Ten kanał ma już przestrzeń *${linked?.name}*. Zmień szczegóły przez `/vedra config`.",
+                    )
+                }
                 val industryName = resolveIndustryName(tenant.id!!, industrySelectId, customIndustryName)
                 logger.info { "Creating project from modal: name=$projectName industry=$industryName tenant=${tenant.id}" }
 
@@ -133,6 +140,104 @@ class SlackInteractiveRequestHandler(
             }
 
         return tenantResult ?: buildErrorResponse("Błąd: Nie można zidentyfikować workspace.")
+    }
+
+    private fun processConfigProjectSubmission(
+        view: Map<*, *>,
+        teamId: String,
+        channelId: String?,
+    ): ResponseEntity<Any> {
+        if (channelId == null) {
+            logger.warn { "Missing private_metadata channelId in config submission" }
+            return buildErrorResponse("Nie udało się ustalić kanału.")
+        }
+        val form = parseProjectForm(view) ?: return buildErrorResponse("Nie udało się odczytać formularza.")
+        if (form.name.isBlank()) {
+            return buildErrorResponse("Nazwa projektu jest wymagana.")
+        }
+
+        val tenantResult =
+            tenantResolver.withTenantResult(teamId) { tenant ->
+                val industryName = resolveIndustryName(tenant.id!!, form.industrySelectId, form.customIndustryName)
+                logger.info { "Updating space from config modal: name=${form.name} industry=$industryName tenant=${tenant.id}" }
+
+                when (
+                    val result =
+                        tenantProjectService.updateLinkedProject(
+                            tenant.id,
+                            channelId,
+                            form.name,
+                            form.description,
+                            industryName,
+                        )
+                ) {
+                    is TenantProjectService.UpdateResult.Updated -> {
+                        buildConfigSuccessResponse(result.project.name, form.description, industryName)
+                    }
+                    is TenantProjectService.UpdateResult.NameTaken -> {
+                        logger.info { "Space name taken: ${result.name}" }
+                        buildErrorResponse("Projekt *${result.name}* już istnieje.")
+                    }
+                    TenantProjectService.UpdateResult.PublicNotEditable -> {
+                        buildInfoResponse("Przestrzeni publicznej nie można edytować.")
+                    }
+                    TenantProjectService.UpdateResult.NoLinkedSpace -> {
+                        when (val space = tenantProjectService.ensureChannelSpace(tenant.id, channelId, null)) {
+                            is TenantProjectService.ChannelSpaceResult.Created ->
+                                when (
+                                    val retry =
+                                        tenantProjectService.updateLinkedProject(
+                                            tenant.id,
+                                            channelId,
+                                            form.name,
+                                            form.description,
+                                            industryName,
+                                        )
+                                ) {
+                                    is TenantProjectService.UpdateResult.Updated ->
+                                        buildConfigSuccessResponse(retry.project.name, form.description, industryName)
+                                    else -> buildErrorResponse("Nie udało się zapisać konfiguracji.")
+                                }
+                            is TenantProjectService.ChannelSpaceResult.AlreadyLinked ->
+                                buildInfoResponse("Przestrzeni publicznej nie można edytować.")
+                        }
+                    }
+                }
+            }
+
+        return tenantResult ?: buildErrorResponse("Błąd: Nie można zidentyfikować workspace.")
+    }
+
+    private data class ProjectForm(
+        val name: String,
+        val description: String?,
+        val industrySelectId: String?,
+        val customIndustryName: String?,
+    )
+
+    private fun parseProjectForm(view: Map<*, *>): ProjectForm? {
+        val state = view["state"] as? Map<*, *>
+        val values = state?.get("values") as? Map<*, *> ?: return null
+        val name =
+            (values["project_name_block"] as? Map<*, *>)
+                ?.let { (it["project_name_input"] as? Map<*, *>)?.get("value") as? String }
+                ?.trim()
+                ?: ""
+        val description =
+            (values["project_description_block"] as? Map<*, *>)
+                ?.let { (it["project_description_input"] as? Map<*, *>)?.get("value") as? String }
+                ?.trim()
+                ?.ifBlank { null }
+        val industrySelectId =
+            (values["project_industry_block"] as? Map<*, *>)
+                ?.let { (it["project_industry_select"] as? Map<*, *>)?.get("selected_option") as? Map<*, *> }
+                ?.let { it["value"] as? String }
+        val customIndustryName =
+            (values["custom_industry_block"] as? Map<*, *>)
+                ?.let { (it["custom_industry_input"] as? Map<*, *>)?.get("value") as? String }
+                ?.trim()
+                ?.ifBlank { null }
+        return ProjectForm(name, description, industrySelectId, customIndustryName)
     }
 
     private fun resolveIndustryName(
@@ -191,6 +296,61 @@ class SlackInteractiveRequestHandler(
                                             "text" to
                                                 ":white_check_mark: *Projekt utworzony*\n\n*$projectName*\n$industryInfo\n$descriptionInfo$linkInfo",
                                         ),
+                                ),
+                            ),
+                    ),
+            )
+
+        return ResponseEntity.ok(response)
+    }
+
+    private fun buildConfigSuccessResponse(
+        projectName: String,
+        description: String?,
+        industryName: String?,
+    ): ResponseEntity<Any> {
+        val industryInfo = industryName?.let { "Branża: $it" } ?: "Branża: nie wybrano"
+        val descriptionInfo = description?.let { "\nOpis: $it" } ?: ""
+        val response =
+            mapOf(
+                "response_action" to "update",
+                "view" to
+                    mapOf(
+                        "type" to "modal",
+                        "title" to mapOf("type" to "plain_text", "text" to "Sukces"),
+                        "close" to mapOf("type" to "plain_text", "text" to "Zamknij"),
+                        "blocks" to
+                            listOf(
+                                mapOf(
+                                    "type" to "section",
+                                    "text" to
+                                        mapOf(
+                                            "type" to "mrkdwn",
+                                            "text" to
+                                                ":white_check_mark: *Zapisano konfigurację*\n\n*$projectName*\n$industryInfo$descriptionInfo",
+                                        ),
+                                ),
+                            ),
+                    ),
+            )
+
+        return ResponseEntity.ok(response)
+    }
+
+    private fun buildInfoResponse(message: String): ResponseEntity<Any> {
+        val response =
+            mapOf(
+                "response_action" to "update",
+                "view" to
+                    mapOf(
+                        "type" to "modal",
+                        "title" to mapOf("type" to "plain_text", "text" to "Informacja"),
+                        "close" to mapOf("type" to "plain_text", "text" to "Zamknij"),
+                        "blocks" to
+                            listOf(
+                                mapOf(
+                                    "type" to "section",
+                                    "text" to mapOf("type" to "mrkdwn", "text" to message),
                                 ),
                             ),
                     ),

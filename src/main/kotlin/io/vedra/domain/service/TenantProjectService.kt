@@ -79,18 +79,113 @@ class TenantProjectService(
         tenantId: UUID,
     ): ChannelStatus {
         val channelProject = channelProjectRepository.findByChannelId(channelId)
-        val projectName =
+        val project =
             channelProject?.let { cp ->
                 tenantProjectRepository
                     .findByTenantId(tenantId)
                     .find { it.id == cp.projectId }
-                    ?.name
             }
         return ChannelStatus(
             channelId = channelId,
-            projectName = projectName,
+            projectName = project?.name,
+            description = project?.description,
+            industry = project?.industry,
             isLinked = channelProject != null,
         )
+    }
+
+    fun getLinkedProject(
+        channelId: String,
+        tenantId: UUID,
+    ): TenantProject? {
+        val linked = channelProjectRepository.findByChannelId(channelId) ?: return null
+        return tenantProjectRepository.findByTenantIdAndId(tenantId, linked.projectId.toString())
+    }
+
+    @Transactional
+    fun ensureChannelSpace(
+        tenantId: UUID,
+        channelId: String,
+        channelName: String?,
+    ): ChannelSpaceResult {
+        channelProjectRepository.findByChannelId(channelId)?.let { existing ->
+            val project = tenantProjectRepository.findByTenantIdAndId(tenantId, existing.projectId.toString())
+            logger.info { "[SPACE] Already linked, skipping channel=$channelId project=${project?.name}" }
+            return ChannelSpaceResult.AlreadyLinked(project)
+        }
+        val baseName = toSpaceName(channelName, channelId)
+        val name = uniqueSpaceName(tenantId, baseName)
+        val result =
+            createProject(
+                tenantId = tenantId,
+                name = name,
+                description = "Przestrzeń auto-utworzona dla kanału $name. Doprecyzuj przez /vedra config.",
+                industry = null,
+            )
+        val project =
+            when (result) {
+                is CreateResult.Success -> result.project
+                is CreateResult.AlreadyExists -> tenantProjectRepository.findByTenantIdAndName(tenantId, name)!!
+                is CreateResult.PublicAlreadyExists -> tenantProjectRepository.findPublicByTenantId(tenantId)!!
+            }
+        channelProjectRepository.save(ChannelProject(channelId = channelId, projectId = project.id!!))
+        logger.info { "[SPACE] Auto-provisioned channel=$channelId project=${project.name} tenant=$tenantId" }
+        return ChannelSpaceResult.Created(project)
+    }
+
+    @Transactional
+    fun updateLinkedProject(
+        tenantId: UUID,
+        channelId: String,
+        name: String,
+        description: String?,
+        industry: String?,
+    ): UpdateResult {
+        val linked = channelProjectRepository.findByChannelId(channelId) ?: return UpdateResult.NoLinkedSpace
+        val project =
+            tenantProjectRepository.findByTenantIdAndId(tenantId, linked.projectId.toString())
+                ?: return UpdateResult.NoLinkedSpace
+        if (project.visibility == ProjectVisibility.PUBLIC) return UpdateResult.PublicNotEditable
+        val trimmed = name.trim()
+        tenantProjectRepository.findByTenantIdAndName(tenantId, trimmed)?.let { other ->
+            if (other.id != project.id) return UpdateResult.NameTaken(trimmed)
+        }
+        val updated =
+            tenantProjectRepository.save(
+                project.copy(name = trimmed, description = description, industry = industry),
+            )
+        logger.info { "[SPACE] Updated space channel=$channelId project=${updated.name} tenant=$tenantId" }
+        return UpdateResult.Updated(updated)
+    }
+
+    private fun toSpaceName(
+        channelName: String?,
+        channelId: String,
+    ): String {
+        val slug =
+            channelName
+                ?.lowercase()
+                ?.replace(Regex("[^a-z0-9ąćęłńóśźż_]+"), "-")
+                ?.trim('-')
+                ?.take(40)
+                ?.trimEnd('-')
+        return if (slug.isNullOrBlank()) {
+            "kanał-${channelId.takeLast(6).lowercase()}"
+        } else {
+            "kanał-$slug"
+        }
+    }
+
+    private fun uniqueSpaceName(
+        tenantId: UUID,
+        base: String,
+    ): String {
+        if (tenantProjectRepository.findByTenantIdAndName(tenantId, base) == null) return base
+        for (i in 2..10) {
+            val candidate = "$base-$i"
+            if (tenantProjectRepository.findByTenantIdAndName(tenantId, candidate) == null) return candidate
+        }
+        return "$base-${System.currentTimeMillis() % 10000}"
     }
 
     fun listProjects(tenantId: UUID): List<TenantProject> = tenantProjectRepository.findByTenantId(tenantId)
@@ -184,6 +279,32 @@ class TenantProjectService(
     data class ChannelStatus(
         val channelId: String,
         val projectName: String?,
+        val description: String? = null,
+        val industry: String? = null,
         val isLinked: Boolean,
     )
+
+    sealed class ChannelSpaceResult {
+        data class Created(
+            val project: TenantProject,
+        ) : ChannelSpaceResult()
+
+        data class AlreadyLinked(
+            val project: TenantProject?,
+        ) : ChannelSpaceResult()
+    }
+
+    sealed class UpdateResult {
+        data class Updated(
+            val project: TenantProject,
+        ) : UpdateResult()
+
+        data object NoLinkedSpace : UpdateResult()
+
+        data object PublicNotEditable : UpdateResult()
+
+        data class NameTaken(
+            val name: String,
+        ) : UpdateResult()
+    }
 }
