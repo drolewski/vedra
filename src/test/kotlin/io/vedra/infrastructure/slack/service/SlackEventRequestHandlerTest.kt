@@ -8,7 +8,9 @@ import kotlin.test.assertEquals
 
 class SlackEventRequestHandlerTest {
     private val eventProcessor: SlackEventProcessor = mockk(relaxed = true)
-    private val handler = SlackEventRequestHandler(eventProcessor)
+    private val installationService: io.vedra.domain.service.SlackInstallationService = mockk(relaxed = true)
+    private val tenantRepository: io.vedra.domain.repository.tenant.TenantRepository = mockk(relaxed = true)
+    private val handler = SlackEventRequestHandler(eventProcessor, installationService, tenantRepository)
 
     @Test
     fun `should process event from body`() {

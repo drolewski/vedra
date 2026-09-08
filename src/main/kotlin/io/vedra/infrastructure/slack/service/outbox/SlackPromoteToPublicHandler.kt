@@ -15,6 +15,7 @@ class SlackPromoteToPublicHandler(
     private val promotionService: KnowledgePromotionService,
     private val feedbackMappingRepository: FeedbackMappingRepository,
     private val slackMessageService: SlackMessageService,
+    private val tenantRepository: io.vedra.domain.repository.tenant.TenantRepository,
 ) : OutboxEventHandler {
     override fun supports(eventType: String): Boolean = eventType == EVENT_TYPE
 
@@ -23,6 +24,7 @@ class SlackPromoteToPublicHandler(
         val userId = event.payload["userId"] as? String
         val tenantId = event.payload["tenantId"] as? String
         val channelId = event.payload["channelId"] as? String
+        val teamId = event.payload["teamId"] as? String
 
         if (feedbackId == null || userId == null || tenantId == null) {
             logger.warn { "Missing required payload fields in PROMOTE_TO_PUBLIC event: ${event.id}" }
@@ -49,10 +51,12 @@ class SlackPromoteToPublicHandler(
             val threadTs = mapping?.messageTs
             if (threadTs != null) {
                 try {
+                    val resolvedTeamId = teamId ?: tenantRepository.findById(tenantUuid)?.externalId
                     slackMessageService.sendThreadMessage(
                         channel = channelId,
                         threadTs = threadTs,
                         text = "Udostępniono publicznie 🌍",
+                        teamId = resolvedTeamId,
                     )
                 } catch (e: Exception) {
                     logger.warn(e) { "Failed to send promote confirmation" }

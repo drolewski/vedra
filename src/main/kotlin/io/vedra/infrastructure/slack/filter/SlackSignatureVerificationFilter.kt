@@ -23,7 +23,7 @@ private val logger = KotlinLogging.logger {}
 
 @Component
 class SlackSignatureVerificationFilter(
-    private val signingSecret: String,
+    @org.springframework.beans.factory.annotation.Qualifier("slackSigningSecret") private val signingSecret: String,
 ) : Filter {
     override fun doFilter(
         request: ServletRequest,

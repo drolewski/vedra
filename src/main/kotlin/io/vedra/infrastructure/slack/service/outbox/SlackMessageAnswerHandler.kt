@@ -16,6 +16,7 @@ class SlackMessageAnswerHandler(
     private val knowledgeService: KnowledgeService,
     private val slackMessageService: SlackMessageService,
     private val feedbackService: FeedbackService,
+    private val tenantRepository: io.vedra.domain.repository.tenant.TenantRepository,
 ) : OutboxEventHandler {
     override fun supports(eventType: String): Boolean = eventType == EVENT_TYPE
 
@@ -24,6 +25,7 @@ class SlackMessageAnswerHandler(
         val threadTs = event.payload["threadTs"] as? String
         val question = event.payload["question"] as? String
         val tenantId = event.payload["tenantId"] as? String
+        val teamId = event.payload["teamId"] as? String
 
         if (channel == null || threadTs == null || question == null || tenantId == null) {
             logger.warn { "Missing required payload fields in SLACK_MESSAGE_ANSWER event: ${event.id}" }
@@ -50,6 +52,7 @@ class SlackMessageAnswerHandler(
 
         val result = knowledgeService.answerQuestion(question, projectIds, tenantUuid)
         val feedbackId = UUID.randomUUID().toString()
+        val resolvedTeamId = teamId ?: tenantRepository.findById(tenantUuid)?.externalId
 
         val messageTs =
             slackMessageService.sendThreadMessageWithFeedback(
@@ -57,6 +60,7 @@ class SlackMessageAnswerHandler(
                 threadTs = threadTs,
                 result = result,
                 feedbackId = feedbackId,
+                teamId = resolvedTeamId,
             )
 
         feedbackService.saveMapping(

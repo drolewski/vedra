@@ -16,17 +16,19 @@ class SlackMessageService(
         channel: String,
         threadTs: String,
         text: String,
+        teamId: String? = null,
     ) {
         logger.debug { "Sending thread message to channel=$channel threadTs=$threadTs" }
-        slackClient.postThreadMessage(channel, threadTs, text)
+        slackClient.postThreadMessage(channel, threadTs, text, teamId)
     }
 
     fun sendChannelMessage(
         channel: String,
         text: String,
+        teamId: String? = null,
     ) {
         logger.debug { "Sending channel message to channel=$channel" }
-        slackClient.postChannelMessage(channel, text)
+        slackClient.postChannelMessage(channel, text, teamId)
     }
 
     fun sendThreadMessageWithFeedback(
@@ -34,11 +36,12 @@ class SlackMessageService(
         threadTs: String,
         result: AnswerResult,
         feedbackId: String,
+        teamId: String? = null,
     ): String {
         logger.debug { "Sending thread message with feedback to channel=$channel threadTs=$threadTs feedbackId=$feedbackId" }
         val blocks = messageFormatter.buildAnswerBlocks(result, feedbackId)
         val fallbackText = messageFormatter.formatAnswer(result)
-        return slackClient.postThreadMessageWithBlocks(channel, threadTs, blocks, fallbackText)
+        return slackClient.postThreadMessageWithBlocks(channel, threadTs, blocks, fallbackText, teamId)
     }
 
     fun replaceFeedbackButtons(
@@ -46,21 +49,23 @@ class SlackMessageService(
         messageTs: String,
         originalBlocks: List<Map<String, Any>>,
         vote: String,
+        teamId: String? = null,
     ) {
         logger.debug { "Replacing feedback buttons for message=$messageTs in channel=$channel vote=$vote" }
         val updatedBlocks = messageFormatter.buildConfirmationBlocks(originalBlocks, vote)
         @Suppress("UNCHECKED_CAST")
-        slackClient.updateMessage(channel, messageTs, updatedBlocks as List<Map<String, Any>>)
+        slackClient.updateMessage(channel, messageTs, updatedBlocks as List<Map<String, Any>>, teamId)
     }
 
     fun removePromoteButton(
         channel: String,
         messageTs: String,
         originalBlocks: List<Map<String, Any>>,
+        teamId: String? = null,
     ) {
         logger.debug { "Removing promote button for message=$messageTs in channel=$channel" }
         val updatedBlocks = messageFormatter.buildPromotedBlocks(originalBlocks)
         @Suppress("UNCHECKED_CAST")
-        slackClient.updateMessage(channel, messageTs, updatedBlocks as List<Map<String, Any>>)
+        slackClient.updateMessage(channel, messageTs, updatedBlocks as List<Map<String, Any>>, teamId)
     }
 }

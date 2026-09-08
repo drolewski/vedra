@@ -29,7 +29,7 @@ class BotChannelJoinHandlerTest {
         every { tenantResolver.withTenantResult<Unit>(any(), any()) } answers {
             secondArg<(Tenant) -> Unit>()(testTenant)
         }
-        every { slackClient.getChannelName(any()) } returns "general"
+        every { slackClient.getChannelName(any(), any()) } returns "general"
     }
 
     private fun joinEvent() =
@@ -60,7 +60,7 @@ class BotChannelJoinHandlerTest {
         handler.handle(joinEvent())
 
         verify { tenantProjectService.ensureChannelSpace(tenantId, "C1", "general") }
-        verify { messageService.sendChannelMessage("C1", match { it.contains("ch-general") }) }
+        verify { messageService.sendChannelMessage("C1", match { it.contains("ch-general") }, any()) }
     }
 
     @Test
@@ -70,6 +70,6 @@ class BotChannelJoinHandlerTest {
 
         handler.handle(joinEvent())
 
-        verify(exactly = 0) { messageService.sendChannelMessage(any(), any()) }
+        verify(exactly = 0) { messageService.sendChannelMessage(any(), any(), any()) }
     }
 }

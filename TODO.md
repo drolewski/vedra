@@ -2,7 +2,10 @@
 
 ## Dalej
 7. Dodanie integracji po authService tak jak w spec 006
-8. Dodanie Test Planu dla funkcjonalności
+8. Funkcjonalne przetestowanie całego flow (onboarding, tworzenie projektu, konfiguracja, zbieranie wiedzy, reagowanie na pytania)
+9. Pytania powinny być rozpoznawane na podstawie intencji, a nie na podstawie słów kluczowych itp.
+
+
 9. Tłumaczenia odpowiedzi/komunikatów statycznych i wybieranie jej na podstawie języka użytkownika
 10. Dzialanie procesu definiowania branży, czy potrzebne są tutaj jakieś dodatkowe informacje, czy wystarczy nazwa branży i opis
 11. Funkcja umozliwiająca publikowanie danych z prywatnych kanałów do general, aby mogły być analizowane przez AI
@@ -11,6 +14,7 @@
 14. Integracja z teams oraz google chat
 15. Egzekucja pakietów w zależności od wybranego planu
 16. Dashboard zarządzania pakietami
+17. Komunikat o instalacji vedra zamiast tej śmiesznej strony xD
 
 -----
 

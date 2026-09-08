@@ -44,6 +44,7 @@ class ConfigCommandHandler(
                     projectName = project.name,
                     description = project.description,
                     industry = project.industry,
+                    teamId = command.workspaceId,
                 )
                 ""
             } catch (e: Exception) {

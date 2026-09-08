@@ -7,6 +7,7 @@ interface SlackClientPort {
         channel: String,
         threadTs: String,
         text: String,
+        teamId: String? = null,
     )
 
     fun postThreadMessageWithBlocks(
@@ -14,22 +15,31 @@ interface SlackClientPort {
         threadTs: String,
         blocks: List<Map<String, Any>>,
         fallbackText: String,
+        teamId: String? = null,
     ): String
 
     fun updateMessage(
         channel: String,
         messageTs: String,
         blocks: List<Map<String, Any>>,
+        teamId: String? = null,
     )
 
-    fun openModal(request: ViewsOpenRequest)
+    fun openModal(
+        request: ViewsOpenRequest,
+        teamId: String? = null,
+    )
 
     fun getTeamName(teamId: String): String?
 
-    fun getChannelName(channelId: String): String?
+    fun getChannelName(
+        channelId: String,
+        teamId: String? = null,
+    ): String?
 
     fun postChannelMessage(
         channel: String,
         text: String,
+        teamId: String? = null,
     )
 }

@@ -21,12 +21,14 @@ class SlackModalService(
         triggerId: String,
         channelId: String,
         tenantId: UUID,
+        teamId: String? = null,
     ) {
         logger.info { "Opening create project modal for triggerId=$triggerId channelId=$channelId tenantId=$tenantId" }
         openProjectModal(
             triggerId = triggerId,
             channelId = channelId,
             tenantId = tenantId,
+            teamId = teamId,
             callbackId = CALLBACK_CREATE_PROJECT,
             title = "Utwórz projekt",
             submit = "Utwórz",
@@ -43,12 +45,14 @@ class SlackModalService(
         projectName: String,
         description: String?,
         industry: String?,
+        teamId: String? = null,
     ) {
         logger.info { "Opening config modal for triggerId=$triggerId channelId=$channelId tenantId=$tenantId" }
         openProjectModal(
             triggerId = triggerId,
             channelId = channelId,
             tenantId = tenantId,
+            teamId = teamId,
             callbackId = CALLBACK_CONFIG_PROJECT,
             title = "Konfiguracja przestrzeni",
             submit = "Zapisz",
@@ -62,6 +66,7 @@ class SlackModalService(
         triggerId: String,
         channelId: String,
         tenantId: UUID,
+        teamId: String?,
         callbackId: String,
         title: String,
         submit: String,
@@ -194,7 +199,7 @@ class SlackModalService(
                 .viewAsString(viewJson)
                 .build()
 
-        slackClient.openModal(request)
+        slackClient.openModal(request, teamId)
         logger.info { "Modal opened successfully for tenant=$tenantId" }
     }
 

@@ -18,7 +18,8 @@ class SlackMessageAnswerHandlerTest {
     private val knowledgeService: KnowledgeService = mockk()
     private val slackMessageService: SlackMessageService = mockk(relaxed = true)
     private val feedbackService: FeedbackService = mockk(relaxed = true)
-    private val handler = SlackMessageAnswerHandler(knowledgeService, slackMessageService, feedbackService)
+    private val tenantRepository: io.vedra.domain.repository.tenant.TenantRepository = mockk(relaxed = true)
+    private val handler = SlackMessageAnswerHandler(knowledgeService, slackMessageService, feedbackService, tenantRepository)
 
     @Test
     fun `should support SLACK_MESSAGE_ANSWER event type`() {
@@ -58,7 +59,7 @@ class SlackMessageAnswerHandlerTest {
             )
 
         every { knowledgeService.answerQuestion(any(), any(), any()) } returns expectedResult
-        every { slackMessageService.sendThreadMessageWithFeedback(any(), any(), any(), any()) } returns "222.0"
+        every { slackMessageService.sendThreadMessageWithFeedback(any(), any(), any(), any(), any()) } returns "222.0"
 
         handler.handle(event)
 
@@ -75,6 +76,7 @@ class SlackMessageAnswerHandlerTest {
                 threadTs = "1234567890.123456",
                 result = expectedResult,
                 feedbackId = any(),
+                teamId = any(),
             )
         }
         verify {
@@ -102,7 +104,7 @@ class SlackMessageAnswerHandlerTest {
         handler.handle(event)
 
         verify(exactly = 0) { knowledgeService.answerQuestion(any(), any(), any()) }
-        verify(exactly = 0) { slackMessageService.sendThreadMessageWithFeedback(any(), any(), any(), any()) }
+        verify(exactly = 0) { slackMessageService.sendThreadMessageWithFeedback(any(), any(), any(), any(), any()) }
     }
 
     @Test
@@ -120,7 +122,7 @@ class SlackMessageAnswerHandlerTest {
         handler.handle(event)
 
         verify(exactly = 0) { knowledgeService.answerQuestion(any(), any(), any()) }
-        verify(exactly = 0) { slackMessageService.sendThreadMessageWithFeedback(any(), any(), any(), any()) }
+        verify(exactly = 0) { slackMessageService.sendThreadMessageWithFeedback(any(), any(), any(), any(), any()) }
     }
 
     @Test
@@ -138,7 +140,7 @@ class SlackMessageAnswerHandlerTest {
         handler.handle(event)
 
         verify(exactly = 0) { knowledgeService.answerQuestion(any(), any(), any()) }
-        verify(exactly = 0) { slackMessageService.sendThreadMessageWithFeedback(any(), any(), any(), any()) }
+        verify(exactly = 0) { slackMessageService.sendThreadMessageWithFeedback(any(), any(), any(), any(), any()) }
     }
 
     @Test
@@ -157,6 +159,6 @@ class SlackMessageAnswerHandlerTest {
         handler.handle(event)
 
         verify(exactly = 0) { knowledgeService.answerQuestion(any(), any(), any()) }
-        verify(exactly = 0) { slackMessageService.sendThreadMessageWithFeedback(any(), any(), any(), any()) }
+        verify(exactly = 0) { slackMessageService.sendThreadMessageWithFeedback(any(), any(), any(), any(), any()) }
     }
 }

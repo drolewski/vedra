@@ -39,7 +39,7 @@ class ConfigCommandHandlerTest {
 
         assertEquals("", result)
         verify {
-            modalService.openConfigModal("TR1", "C1", tenantId, "P1", "D", "IT")
+            modalService.openConfigModal("TR1", "C1", tenantId, "P1", "D", "IT", "T1")
         }
     }
 
@@ -55,7 +55,7 @@ class ConfigCommandHandlerTest {
 
         assertEquals("", result)
         verify { tenantProjectService.ensureChannelSpace(tenantId, "C1", null) }
-        verify { modalService.openConfigModal(any(), any(), any(), any(), any(), any()) }
+        verify { modalService.openConfigModal(any(), any(), any(), any(), any(), any(), any()) }
     }
 
     @Test
@@ -67,6 +67,6 @@ class ConfigCommandHandlerTest {
         val result = handler.handle(ConfigCommand("C1", "T1", "TR1"))
 
         assertTrue(result.contains("publicznej"))
-        verify(exactly = 0) { modalService.openConfigModal(any(), any(), any(), any(), any(), any()) }
+        verify(exactly = 0) { modalService.openConfigModal(any(), any(), any(), any(), any(), any(), any()) }
     }
 }

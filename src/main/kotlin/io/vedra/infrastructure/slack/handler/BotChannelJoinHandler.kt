@@ -33,7 +33,7 @@ class BotChannelJoinHandler(
             val tenantId = tenant.id!!
             val channelName =
                 try {
-                    slackClient.getChannelName(channel)
+                    slackClient.getChannelName(channel, workspaceId)
                 } catch (e: Exception) {
                     logger.warn(e) { "Failed to resolve channel name for channel=$channel, using fallback" }
                     null
@@ -46,6 +46,7 @@ class BotChannelJoinHandler(
                             ":wave: Vedra dołączyła! Utworzyłam przestrzeń *${space.project.name}*. " +
                                 "Pisz śmiało — zbieram wiedzę, na pytania odpowiadam w wątku. " +
                                 "Szczegóły poprawisz przez `/vedra config`. Pomoc: `/vedra help`.",
+                            workspaceId,
                         )
                     } catch (e: Exception) {
                         logger.warn(e) { "Failed to send welcome message to channel=$channel, space kept" }

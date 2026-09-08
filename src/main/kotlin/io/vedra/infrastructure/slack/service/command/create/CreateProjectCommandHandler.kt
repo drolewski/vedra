@@ -23,6 +23,7 @@ class CreateProjectCommandHandler(
                     triggerId = command.triggerId,
                     channelId = command.channelId,
                     tenantId = tenant.id!!,
+                    teamId = command.workspaceId,
                 )
                 ""
             } catch (e: Exception) {

@@ -60,8 +60,13 @@ application:
       - Authorization
 
 slack:
-  bot-token: ${SLACK_BOT_TOKEN}
-  signing-secret: ${SLACK_SIGNING_SECRET}
+  bot-token: ${SLACK_BOT_TOKEN:}
+  signing-secret: ${SLACK_SIGNING_SECRET:}
+  client-id: ${SLACK_CLIENT_ID:}
+  client-secret: ${SLACK_CLIENT_SECRET:}
+  redirect-url: ${SLACK_REDIRECT_URL:}
+  scopes: ${SLACK_SCOPES:app_mentions:read,channels:history,channels:read,chat:write,commands,groups:history,im:history,mpim:history,team:read,users:read}
+  token-encryption-key: ${SLACK_TOKEN_ENCRYPTION_KEY:}
 
 outbox:
   poll-interval: 5000

@@ -46,14 +46,14 @@ class MessageEventHandler(
             }
 
             if (isQuestion(text)) {
-                handleQuestion(event, tenant.id!!, channel, text, projectIds)
+                handleQuestion(event, tenant.id!!, workspaceId, channel, text, projectIds)
             } else {
                 val specificProjectId = tenantProjectService.getPrivateLinkedProjectId(channel, tenant.id!!)
                 if (specificProjectId == null) {
                     logger.debug { "No private project linked to channel=$channel, skipping ingestion" }
                     return@withTenantResult
                 }
-                handleIngestion(event, tenant.id!!, channel, specificProjectId, text)
+                handleIngestion(event, tenant.id!!, workspaceId, channel, specificProjectId, text)
             }
         }
     }
@@ -61,6 +61,7 @@ class MessageEventHandler(
     private fun handleQuestion(
         event: SlackEvent,
         tenantId: java.util.UUID,
+        teamId: String,
         channel: String,
         question: String,
         projectIds: List<java.util.UUID?>,
@@ -73,6 +74,7 @@ class MessageEventHandler(
             payload =
                 mutableMapOf<String, Any>(
                     "tenantId" to tenantId.toString(),
+                    "teamId" to teamId,
                     "channel" to channel,
                     "threadTs" to (threadTs ?: ""),
                     "question" to question,
@@ -86,6 +88,7 @@ class MessageEventHandler(
     private fun handleIngestion(
         event: SlackEvent,
         tenantId: java.util.UUID,
+        teamId: String,
         channel: String,
         projectId: java.util.UUID,
         content: String,
@@ -96,6 +99,7 @@ class MessageEventHandler(
             payload =
                 mutableMapOf<String, Any>(
                     "tenantId" to tenantId.toString(),
+                    "teamId" to teamId,
                     "projectId" to projectId.toString(),
                     "channelId" to channel,
                     "messageTs" to (event.eventId ?: ""),

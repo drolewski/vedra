@@ -374,7 +374,7 @@ class SlackInteractiveRequestHandler(
         }
         val interaction = parsePayload(payload) ?: return ResponseEntity.ok().build()
         saveFeedbackEvent(interaction)
-        updateMessageButtonsIfNeeded(interaction)
+        updateMessageButtonsIfNeeded(interaction, (payload["team"] as? Map<*, *>)?.get("id") as? String)
         return ResponseEntity.ok().build()
     }
 
@@ -417,6 +417,7 @@ class SlackInteractiveRequestHandler(
                         "userId" to userId,
                         "tenantId" to tenantId,
                         "channelId" to (channelId ?: ""),
+                        "teamId" to teamId,
                     ),
             )
         } catch (e: Exception) {
@@ -435,6 +436,7 @@ class SlackInteractiveRequestHandler(
                 channel = interaction.channelId!!,
                 messageTs = interaction.messageTs!!,
                 originalBlocks = interaction.originalBlocks!!,
+                teamId = (payload["team"] as? Map<*, *>)?.get("id") as? String,
             )
         } catch (e: Exception) {
             logger.warn(e) { "Failed to hide promote button" }
@@ -471,18 +473,25 @@ class SlackInteractiveRequestHandler(
         }
     }
 
-    private fun updateMessageButtonsIfNeeded(interaction: SlackInteractionPayload) {
+    private fun updateMessageButtonsIfNeeded(
+        interaction: SlackInteractionPayload,
+        teamId: String? = null,
+    ) {
         if (!interaction.hasMessageContext) return
-        updateMessageButtons(interaction)
+        updateMessageButtons(interaction, teamId)
     }
 
-    private fun updateMessageButtons(interaction: SlackInteractionPayload) {
+    private fun updateMessageButtons(
+        interaction: SlackInteractionPayload,
+        teamId: String? = null,
+    ) {
         try {
             slackMessageService.replaceFeedbackButtons(
                 channel = interaction.channelId!!,
                 messageTs = interaction.messageTs!!,
                 originalBlocks = interaction.originalBlocks!!,
                 vote = interaction.vote,
+                teamId = teamId,
             )
         } catch (e: Exception) {
             logger.error(e) {
