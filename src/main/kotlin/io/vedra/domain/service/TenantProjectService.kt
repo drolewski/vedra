@@ -170,9 +170,9 @@ class TenantProjectService(
                 ?.take(40)
                 ?.trimEnd('-')
         return if (slug.isNullOrBlank()) {
-            "kanał-${channelId.takeLast(6).lowercase()}"
+            "ch-${channelId.takeLast(6).lowercase()}"
         } else {
-            "kanał-$slug"
+            "ch-$slug"
         }
     }
 

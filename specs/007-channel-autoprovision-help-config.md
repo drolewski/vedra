@@ -9,7 +9,7 @@ Likwidacja ręcznego `/vedra create` jako kroku obowiązkowego i uporządkowanie
 3. **Nowa komenda `/vedra config` przejmuje edycję szczegółów kanału** (nazwa, opis, branża) — modal prefillowany aktualnymi danymi zlinkowanego projektu. `config` przejmuje też rolę awaryjnego tworzenia (brak linku → auto-utwórz i edytuj); `create` zostaje wyłącznie jako ukryty alias wsteczny.
 
 Decyzje właściciela (do zamrożenia przed implementacją):
-- (1) Auto-nazwa projektu: `kanał-<slug-nazwy-kanału>` gdy da się pobrać nazwę przez API, fallback `kanał-<6-znakowy-sufix-channelId>` — bez pytania użytkownika.
+- (1) Auto-nazwa projektu: `ch-<slug-nazwy-kanału>` gdy da się pobrać nazwę przez API, fallback `ch-<6-znakowy-sufix-channelId>` — bez pytania użytkownika.
 - (2) `create` i `list` znikają z helpa i nie mają już uzasadnienia funkcjonalnego: `create` na kanale zlinkowanym → komunikat kierujący do `/vedra config`; na niezlinkowanym działa jako ukryty alias `ensureChannelSpace` (kompatybilność, brak wpisu w helpu). `list` działa jak dziś, ukryte (brak wpisu w helpu) — przy modelu 1:1 wybór z listy nie jest potrzebny, a listowanie wszystkich projektów tenanta łamie izolację kanałów.
 - (3) `config` edytuje wyłącznie projekt PRIVATE zlinkowany z tym kanałem; PUBLIC nigdy nie jest edytowalny przez `config`. Brak linku → `config` sam dowołuje `ensureChannelSpace` i otwiera modal (nie odsyła do `create`).
 - (4) `status` pokazuje pełny kontekst konfiguracji kanału (nazwa, opis, branża przestrzeni + informacja o bazie publicznej), nie tylko fakt linku.
@@ -42,7 +42,7 @@ Pytania nie mają dedykowanej komendy slash i nie dostają jej w tym specu. Dzia
 - **FR-01:** Nowy handler `BotChannelJoinHandler` (`SlackEventHandler`, `supports = type == "member_joined_channel" && joinedUserIsBot`): triggerem jest event dołączenia **bota Vedry** do kanału (detekcja: `event.user == bot_user_id` z `slack_installations` albo `subtype/bot_id`; dokładny warunek do domknięcia przy implementacji przez podgląd payloadu z `/invite`). Zwykłe dołączenia ludzi — ignorowane (cisza, log DEBUG).
 - **FR-02:** Logika `TenantProjectService.ensureChannelSpace(tenantId, channelId, channelName?): ChannelSpaceResult` (`@Transactional`, idempotentna):
   a. `findByChannelId(channelId)` hit → `return AlreadyLinked(existing)` (bez duplikatu, bez 500),
-  b. miss → wyznacz nazwę: `kanał-<slug(channelName, max 40)>` gdy nazwa znana, inaczej `kanał-<channelId.takeLast(6).lowercase()>`; kolizja `UNIQUE(tenant_id,name)` → dopnij `-2`, `-3`… (pętla max 10, potem fallback z timestamp),
+  b. miss → wyznacz nazwę: `ch-<slug(channelName, max 40)>` gdy nazwa znana, inaczej `ch-<channelId.takeLast(6).lowercase()>`; kolizja `UNIQUE(tenant_id,name)` → dopnij `-2`, `-3`… (pętla max 10, potem fallback z timestamp),
   c. `createProject(PRIVATE, description="Przestrzeń auto-utworzona dla kanału <name>. Doprecyzuj przez /vedra config.", industry=null)` + `save ChannelProject(channelId → projectId)` w tej samej transakcji,
   d. `logger.info "[SPACE] Auto-provisioned channel=X project=Y tenant=..."`.
 - **FR-03:** Nazwa kanału best-effort: `SlackClientPort.getChannelName(channelId, teamId)` (nowe `conversations.info`, scope `channels:read` już w 006 FR-01). Brak scope/HTTP błąd → fallback z FR-02b + `warn`, NIE blokuje utworzenia przestrzeni.
@@ -207,7 +207,7 @@ Brak. Opcjonalny backfill jednorazowym jobem (poza DDL): dla każdego `channel_p
 
 ## 12. Ograniczenia i założenia
 - Detekcja "bot dołączył" zależy od payloadu Slacka (`member_joined_channel` + `user == bot_user_id`); jeśli Slack wyśle inny typ (np. `app_mention` bez join), handler do poprawki w implementacji bez zmiany kontraktu FR-02.
-- Nazwa kanału z API może być niedostępna (DM, brak scope, rate-limit) — fallback `kanał-<sufix>` jest pełnoprawny, do poprawy przez `/vedra config`.
+- Nazwa kanału z API może być niedostępna (DM, brak scope, rate-limit) — fallback `ch-<sufix>` jest pełnoprawny, do poprawy przez `/vedra config`.
 - Auto-projekt startuje z `industry=null` i generycznym opisem — celowy trade-off (zero pytań przy invite); doprecyzowanie to rola `config`.
 - Limity planu Free (max 3 projekty, TODO pkt 15) NIE są egzekwowane w tym specu — auto-prowizja może przekroczyć limit; egzekucja osobnym specem pakietowym.
 - RODO/usuwanie przestrzeni przy `member_left_channel` (bot usunięty) poza zakresem — kanał po kicku czyta PUBLIC, link zostaje do ręcznego `unlink` lub re-invite (idempotentny `AlreadyLinked`).

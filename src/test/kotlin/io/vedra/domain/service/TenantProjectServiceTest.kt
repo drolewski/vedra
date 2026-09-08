@@ -129,9 +129,9 @@ class TenantProjectServiceTest {
         val tenantId = UUID.randomUUID()
         val projectId = UUID.randomUUID()
         every { channelProjectRepository.findByChannelId("C9") } returns null
-        every { tenantProjectRepository.findByTenantIdAndName(tenantId, "kanał-general") } returns null
+        every { tenantProjectRepository.findByTenantIdAndName(tenantId, "ch-general") } returns null
         every { tenantProjectRepository.save(any()) } returns
-            TenantProject(id = projectId, tenantId = tenantId, name = "kanał-general", visibility = ProjectVisibility.PRIVATE)
+            TenantProject(id = projectId, tenantId = tenantId, name = "ch-general", visibility = ProjectVisibility.PRIVATE)
         every { channelProjectRepository.save(any()) } answers { firstArg() }
 
         val result = service.ensureChannelSpace(tenantId, "C9", "general")
@@ -147,7 +147,7 @@ class TenantProjectServiceTest {
         val projectId = UUID.randomUUID()
         every { channelProjectRepository.findByChannelId("C9") } returns ChannelProject("C9", projectId)
         every { tenantProjectRepository.findByTenantIdAndId(tenantId, projectId.toString()) } returns
-            TenantProject(id = projectId, tenantId = tenantId, name = "kanał-general")
+            TenantProject(id = projectId, tenantId = tenantId, name = "ch-general")
 
         val result = service.ensureChannelSpace(tenantId, "C9", "general")
 
@@ -161,9 +161,9 @@ class TenantProjectServiceTest {
         val tenantId = UUID.randomUUID()
         val projectId = UUID.randomUUID()
         every { channelProjectRepository.findByChannelId("CABC12") } returns null
-        every { tenantProjectRepository.findByTenantIdAndName(tenantId, "kanał-cabc12") } returns null
+        every { tenantProjectRepository.findByTenantIdAndName(tenantId, "ch-cabc12") } returns null
         every { tenantProjectRepository.save(any()) } returns
-            TenantProject(id = projectId, tenantId = tenantId, name = "kanał-cabc12", visibility = ProjectVisibility.PRIVATE)
+            TenantProject(id = projectId, tenantId = tenantId, name = "ch-cabc12", visibility = ProjectVisibility.PRIVATE)
         every { channelProjectRepository.save(any()) } answers { firstArg() }
 
         val result = service.ensureChannelSpace(tenantId, "CABC12", null)

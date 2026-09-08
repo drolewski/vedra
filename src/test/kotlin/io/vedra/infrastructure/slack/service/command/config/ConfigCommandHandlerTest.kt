@@ -46,7 +46,7 @@ class ConfigCommandHandlerTest {
     @Test
     fun `missing link auto-provisions space then opens modal`() {
         val projectId = UUID.randomUUID()
-        val project = TenantProject(id = projectId, tenantId = tenantId, name = "kanał-abc", visibility = ProjectVisibility.PRIVATE)
+        val project = TenantProject(id = projectId, tenantId = tenantId, name = "ch-abc", visibility = ProjectVisibility.PRIVATE)
         every { tenantProjectService.getLinkedProject("C1", tenantId) } returns null
         every { tenantProjectService.ensureChannelSpace(tenantId, "C1", null) } returns
             TenantProjectService.ChannelSpaceResult.Created(project)

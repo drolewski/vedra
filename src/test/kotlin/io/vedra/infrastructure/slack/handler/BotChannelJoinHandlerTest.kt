@@ -53,14 +53,14 @@ class BotChannelJoinHandlerTest {
 
     @Test
     fun `created space sends welcome once`() {
-        val project = TenantProject(id = UUID.randomUUID(), tenantId = tenantId, name = "kanał-general")
+        val project = TenantProject(id = UUID.randomUUID(), tenantId = tenantId, name = "ch-general")
         every { tenantProjectService.ensureChannelSpace(tenantId, "C1", "general") } returns
             TenantProjectService.ChannelSpaceResult.Created(project)
 
         handler.handle(joinEvent())
 
         verify { tenantProjectService.ensureChannelSpace(tenantId, "C1", "general") }
-        verify { messageService.sendChannelMessage("C1", match { it.contains("kanał-general") }) }
+        verify { messageService.sendChannelMessage("C1", match { it.contains("ch-general") }) }
     }
 
     @Test
