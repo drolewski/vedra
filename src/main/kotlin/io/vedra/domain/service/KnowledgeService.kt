@@ -57,8 +57,8 @@ class KnowledgeService(
             log.debug { "LLM cache hit for hash=${normalized.hash}" }
             return AnswerResult(
                 answer = cachedAnswer.answer,
-                source = cachedAnswer.responseSource,
-                confidence = cachedAnswer.confidence ?: 0.0,
+                source = resolveCachedSource(cachedAnswer),
+                confidence = resolveCachedConfidence(cachedAnswer),
                 entryIds = cachedAnswer.contextEntryIds,
             )
         }
@@ -112,6 +112,27 @@ class KnowledgeService(
                 contentHash = normalized.hash,
             )
         return knowledgeRepository.save(entry)
+    }
+
+    private fun resolveCachedConfidence(cached: io.vedra.domain.model.LlmResponseCacheEntry): Double {
+        val base = cached.confidence ?: 0.0
+        if (base >= VERIFIED_CONFIDENCE || cached.contextEntryIds.isEmpty()) return base
+        return try {
+            val confirmed =
+                knowledgeRepository.findByIds(cached.contextEntryIds).any {
+                    it.accepted && it.answerSource == AnswerSource.AI_GENERATED
+                }
+            if (confirmed) VERIFIED_CONFIDENCE else base
+        } catch (e: Exception) {
+            log.warn(e) { "Failed to resolve cached confidence, returning stored value" }
+            base
+        }
+    }
+
+    private fun resolveCachedSource(cached: io.vedra.domain.model.LlmResponseCacheEntry): ResponseSource {
+        if (cached.responseSource == ResponseSource.KNOWLEDGE_BASE) return cached.responseSource
+        if (resolveCachedConfidence(cached) >= VERIFIED_CONFIDENCE) return ResponseSource.KNOWLEDGE_BASE
+        return cached.responseSource
     }
 
     private fun findReusableAiAnswer(
@@ -282,6 +303,7 @@ class KnowledgeService(
         private const val HIGH_CONFIDENCE = 0.85
         private const val MEDIUM_CONFIDENCE = 0.65
         private const val MIN_CONFIDENCE = MEDIUM_CONFIDENCE
+        private const val VERIFIED_CONFIDENCE = 1.0
 
         private const val FALLBACK_ANSWER = "Nie udało się wygenerować odpowiedzi."
 

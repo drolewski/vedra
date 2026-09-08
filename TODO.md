@@ -1,7 +1,12 @@
 # TODOS
 
 ## Dalej
-7. Dodanie integracji po authService tak jak w spec 006
+
+8. Wyczyszczenia bazy danych ze starych encji i danych
+9. uproszczenie modeli
+10. rozpisanie scenariuszy testowych potwierdzających jakość odpowiedzi
+
+
 8. Funkcjonalne przetestowanie całego flow (onboarding, tworzenie projektu, konfiguracja, zbieranie wiedzy, reagowanie na pytania)
 9. Pytania powinny być rozpoznawane na podstawie intencji, a nie na podstawie słów kluczowych itp.
 

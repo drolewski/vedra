@@ -3,6 +3,7 @@ package io.vedra.domain.service
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
+import io.vedra.domain.model.AnswerSource
 import io.vedra.domain.model.FeedbackMapping
 import io.vedra.domain.model.KnowledgeEntry
 import io.vedra.domain.model.KnowledgeSourceType
@@ -15,7 +16,8 @@ import kotlin.test.assertEquals
 class FeedbackServiceTest {
     private val knowledgeRepository: KnowledgeRepository = mockk(relaxed = true)
     private val feedbackMappingRepository: FeedbackMappingRepository = mockk(relaxed = true)
-    private val service = FeedbackService(knowledgeRepository, feedbackMappingRepository)
+    private val llmCacheService: LlmCacheService = mockk(relaxed = true)
+    private val service = FeedbackService(knowledgeRepository, feedbackMappingRepository, llmCacheService)
 
     init {
         every { knowledgeRepository.save(any()) } answers { firstArg() }
@@ -162,9 +164,61 @@ class FeedbackServiceTest {
         verify(exactly = 0) { feedbackMappingRepository.save(any()) }
     }
 
+    @Test
+    fun `positive vote should accept AI entry and raise cached confidence to 1`() {
+        val entryId = UUID.randomUUID()
+        val entry = knowledgeEntry(entryId, qualityScore = 0.5f, answerSource = AnswerSource.AI_GENERATED, accepted = false)
+        val mapping = FeedbackMapping(id = "fb-1", channel = "C123", messageTs = "222.0", entryIds = listOf(entryId.toString()))
+
+        every { feedbackMappingRepository.findById("fb-1") } returns mapping
+        every { knowledgeRepository.findByIds(listOf(entryId)) } returns listOf(entry)
+
+        service.applyVote("fb-1", "U001", "positive")
+
+        verify { knowledgeRepository.save(match { it.accepted }) }
+        verify { llmCacheService.refreshConfidenceForEntries(listOf(entryId), 1.0, LlmCacheService.RefreshMode.RAISE_ONLY) }
+    }
+
+    @Test
+    fun `negative vote should unaccept AI entry and lower cached confidence`() {
+        val entryId = UUID.randomUUID()
+        val entry = knowledgeEntry(entryId, qualityScore = 0.5f, answerSource = AnswerSource.AI_GENERATED, accepted = true)
+        val mapping = FeedbackMapping(id = "fb-1", channel = "C123", messageTs = "222.0", entryIds = listOf(entryId.toString()))
+
+        every { feedbackMappingRepository.findById("fb-1") } returns mapping
+        every { knowledgeRepository.findByIds(listOf(entryId)) } returns listOf(entry)
+
+        service.applyVote("fb-1", "U001", "negative")
+
+        verify { knowledgeRepository.save(match { !it.accepted }) }
+        verify {
+            llmCacheService.refreshConfidenceForEntries(
+                match { it == listOf(entryId) },
+                any(),
+                LlmCacheService.RefreshMode.LOWER_ONLY,
+            )
+        }
+    }
+
+    @Test
+    fun `vote should not change accepted flag of user verified entry`() {
+        val entryId = UUID.randomUUID()
+        val entry = knowledgeEntry(entryId, qualityScore = 0.5f, answerSource = AnswerSource.USER_VERIFIED, accepted = true)
+        val mapping = FeedbackMapping(id = "fb-1", channel = "C123", messageTs = "222.0", entryIds = listOf(entryId.toString()))
+
+        every { feedbackMappingRepository.findById("fb-1") } returns mapping
+        every { knowledgeRepository.findByIds(listOf(entryId)) } returns listOf(entry)
+
+        service.applyVote("fb-1", "U001", "negative")
+
+        verify { knowledgeRepository.save(match { it.accepted }) }
+    }
+
     private fun knowledgeEntry(
         id: UUID,
         qualityScore: Float,
+        answerSource: AnswerSource = AnswerSource.USER_VERIFIED,
+        accepted: Boolean = true,
     ) = KnowledgeEntry(
         id = id,
         tenantId = UUID.randomUUID(),
@@ -172,5 +226,7 @@ class FeedbackServiceTest {
         content = "Test",
         answer = "Answer",
         qualityScore = qualityScore,
+        answerSource = answerSource,
+        accepted = accepted,
     )
 }

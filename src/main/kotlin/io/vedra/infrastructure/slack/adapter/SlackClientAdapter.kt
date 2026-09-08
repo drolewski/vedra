@@ -88,6 +88,7 @@ class SlackClientAdapter(
         messageTs: String,
         blocks: List<Map<String, Any>>,
         teamId: String?,
+        text: String?,
     ) {
         try {
             val token = tokenFor(teamId)
@@ -98,6 +99,8 @@ class SlackClientAdapter(
                     .channel(channel)
                     .ts(messageTs)
                     .blocksAsString(blocksJson)
+                if (!text.isNullOrBlank()) req.text(text)
+                req
             }
         } catch (e: SlackNotInstalledException) {
             throw e

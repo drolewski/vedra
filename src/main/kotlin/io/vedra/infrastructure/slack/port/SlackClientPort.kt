@@ -23,6 +23,7 @@ interface SlackClientPort {
         messageTs: String,
         blocks: List<Map<String, Any>>,
         teamId: String? = null,
+        text: String? = null,
     )
 
     fun openModal(

@@ -11,6 +11,13 @@ interface LlmResponseCachePort {
         questionHash: String,
     ): LlmResponseCacheEntry?
 
+    fun findByEntryId(entryId: UUID): List<LlmResponseCacheEntry>
+
+    fun updateConfidence(
+        id: UUID,
+        confidence: Double,
+    )
+
     fun save(entry: LlmResponseCacheEntry): LlmResponseCacheEntry
 
     fun incrementUsage(id: UUID)

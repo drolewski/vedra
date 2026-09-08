@@ -53,8 +53,10 @@ class SlackMessageService(
     ) {
         logger.debug { "Replacing feedback buttons for message=$messageTs in channel=$channel vote=$vote" }
         val updatedBlocks = messageFormatter.buildConfirmationBlocks(originalBlocks, vote)
+
         @Suppress("UNCHECKED_CAST")
-        slackClient.updateMessage(channel, messageTs, updatedBlocks as List<Map<String, Any>>, teamId)
+        val blocks = updatedBlocks as List<Map<String, Any>>
+        slackClient.updateMessage(channel, messageTs, blocks, teamId, messageFormatter.buildFallbackText(blocks))
     }
 
     fun removePromoteButton(
@@ -65,7 +67,9 @@ class SlackMessageService(
     ) {
         logger.debug { "Removing promote button for message=$messageTs in channel=$channel" }
         val updatedBlocks = messageFormatter.buildPromotedBlocks(originalBlocks)
+
         @Suppress("UNCHECKED_CAST")
-        slackClient.updateMessage(channel, messageTs, updatedBlocks as List<Map<String, Any>>, teamId)
+        val blocks = updatedBlocks as List<Map<String, Any>>
+        slackClient.updateMessage(channel, messageTs, blocks, teamId, messageFormatter.buildFallbackText(blocks))
     }
 }

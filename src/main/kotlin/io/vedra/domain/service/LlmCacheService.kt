@@ -77,6 +77,35 @@ class LlmCacheService(
         }
     }
 
+    fun refreshConfidenceForEntries(
+        entryIds: List<UUID>,
+        confidence: Double,
+        mode: RefreshMode = RefreshMode.RAISE_ONLY,
+    ) {
+        try {
+            entryIds.forEach { entryId ->
+                llmResponseCachePort.findByEntryId(entryId).forEach { cached ->
+                    val current = cached.confidence ?: 0.0
+                    val shouldUpdate =
+                        when (mode) {
+                            RefreshMode.RAISE_ONLY -> current < confidence
+                            RefreshMode.LOWER_ONLY -> current > confidence
+                        }
+                    if (shouldUpdate && cached.id != null) {
+                        llmResponseCachePort.updateConfidence(cached.id, confidence)
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            log.warn(e) { "Failed to refresh cached confidence for entries=$entryIds" }
+        }
+    }
+
+    enum class RefreshMode {
+        RAISE_ONLY,
+        LOWER_ONLY,
+    }
+
     fun invalidateByModel(modelVersion: String) {
         try {
             llmResponseCachePort.deleteByModelVersion(modelVersion)

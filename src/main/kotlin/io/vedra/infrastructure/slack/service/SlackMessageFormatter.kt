@@ -97,12 +97,35 @@ class SlackMessageFormatter {
 
     fun formatAnswer(result: AnswerResult): String {
         val sourceLabel = resolveSourceLabel(result.source)
-        return "${result.answer}\n\n$sourceLabel"
+        val confidence = ConfidenceBlockBuilder.formatConfidenceText(result.confidence)
+        return "${result.answer}\n\n$sourceLabel\nPewność: $confidence"
+    }
+
+    fun buildFallbackText(blocks: List<Map<String, Any>>): String {
+        val parts = mutableListOf<String>()
+        for (block in blocks) {
+            if (block["type"] == "actions") continue
+            val text = block["text"] as? Map<*, *>
+            val elements = block["elements"] as? List<*>
+            (text?.get("text") as? String)?.let { if (it.isNotBlank()) parts.add(stripMrkdwn(it)) }
+            elements?.forEach {
+                val elementText = (it as? Map<*, *>)?.get("text") as? String
+                if (!elementText.isNullOrBlank()) parts.add(stripMrkdwn(elementText))
+            }
+        }
+        return parts.joinToString("\n").take(MAX_FALLBACK_LENGTH)
     }
 
     private companion object {
         const val ACTION_PROMOTE = "promote_public"
+        const val MAX_FALLBACK_LENGTH = 3000
     }
+
+    private fun stripMrkdwn(text: String): String =
+        text
+            .replace("*", "")
+            .replace("_", "")
+            .trim()
 
     private fun resolveVoteLabel(vote: String): String =
         when (vote) {

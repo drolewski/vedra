@@ -1,5 +1,6 @@
 package io.vedra.domain.service
 
+import io.vedra.domain.model.AnswerSource
 import io.vedra.domain.model.FeedbackMapping
 import io.vedra.domain.repository.feedback.FeedbackMappingRepository
 import io.vedra.domain.repository.knowledge.KnowledgeRepository
@@ -11,6 +12,7 @@ import java.util.UUID
 class FeedbackService(
     private val knowledgeRepository: KnowledgeRepository,
     private val feedbackMappingRepository: FeedbackMappingRepository,
+    private val llmCacheService: LlmCacheService,
 ) {
     @Transactional
     fun saveMapping(
@@ -44,9 +46,20 @@ class FeedbackService(
         feedbackMappingRepository.save(updatedMapping)
 
         val entries = knowledgeRepository.findByIds(mapping.entryIds.map { UUID.fromString(it) })
+        val newScore = calculateScore(updatedMapping.votes)
         entries.forEach { entry ->
-            val updatedEntry = entry.copy(qualityScore = calculateScore(updatedMapping.votes))
+            var updatedEntry = entry.copy(qualityScore = newScore)
+            if (entry.answerSource == AnswerSource.AI_GENERATED) {
+                updatedEntry = updatedEntry.copy(accepted = vote == VOTE_POSITIVE)
+            }
             knowledgeRepository.save(updatedEntry)
+        }
+
+        val entryIds = entries.mapNotNull { it.id }
+        if (vote == VOTE_POSITIVE) {
+            llmCacheService.refreshConfidenceForEntries(entryIds, VERIFIED_CONFIDENCE, LlmCacheService.RefreshMode.RAISE_ONLY)
+        } else {
+            llmCacheService.refreshConfidenceForEntries(entryIds, newScore.toDouble(), LlmCacheService.RefreshMode.LOWER_ONLY)
         }
 
         return VoteResult.NEW
@@ -71,5 +84,8 @@ class FeedbackService(
     companion object {
         private const val CONFIDENCE = 10.0
         private const val PRIOR = 0.5
+        private const val VERIFIED_CONFIDENCE = 1.0
+        const val VOTE_POSITIVE = "positive"
+        const val VOTE_NEGATIVE = "negative"
     }
 }

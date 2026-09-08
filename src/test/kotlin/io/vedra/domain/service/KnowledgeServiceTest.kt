@@ -358,6 +358,94 @@ class KnowledgeServiceTest {
         verify { llmCacheService.lookup(tenantId, any(), any()) }
     }
 
+    @Test
+    fun `should return cached confidence when no entry was user verified`() {
+        val entryId = UUID.randomUUID()
+        val cached =
+            io.vedra.domain.model.LlmResponseCacheEntry(
+                tenantId = tenantId,
+                questionHash = "h",
+                normalizedQuestion = "q",
+                originalQuestion = "q",
+                answer = "Cached",
+                modelVersion = "m",
+                confidence = 0.8,
+                responseSource = ResponseSource.AI_WITH_CONTEXT,
+                contextEntryIds = listOf(entryId),
+                expiresAt =
+                    java.time.Instant
+                        .now()
+                        .plusSeconds(60),
+            )
+        every { llmCacheService.lookup(any(), any(), any()) } returns cached
+        every { knowledgeRepository.findByIds(listOf(entryId)) } returns
+            listOf(knowledgeEntry(entryId).copy(answerSource = AnswerSource.USER_VERIFIED, accepted = true))
+
+        val result = service.answerQuestion("Q?", listOf(null), tenantId)
+
+        assertEquals("Cached", result.answer)
+        assertEquals(0.8, result.confidence)
+        assertEquals(ResponseSource.AI_WITH_CONTEXT, result.source)
+    }
+
+    @Test
+    fun `should return verified confidence when cached entry was accepted by vote`() {
+        val entryId = UUID.randomUUID()
+        val cached =
+            io.vedra.domain.model.LlmResponseCacheEntry(
+                tenantId = tenantId,
+                questionHash = "h",
+                normalizedQuestion = "q",
+                originalQuestion = "q",
+                answer = "Cached",
+                modelVersion = "m",
+                confidence = 0.0,
+                responseSource = ResponseSource.AI_GENERAL,
+                contextEntryIds = listOf(entryId),
+                expiresAt =
+                    java.time.Instant
+                        .now()
+                        .plusSeconds(60),
+            )
+        every { llmCacheService.lookup(any(), any(), any()) } returns cached
+        every { knowledgeRepository.findByIds(listOf(entryId)) } returns
+            listOf(knowledgeEntry(entryId).copy(answerSource = AnswerSource.AI_GENERATED, accepted = true))
+
+        val result = service.answerQuestion("Q?", listOf(null), tenantId)
+
+        assertEquals(1.0, result.confidence)
+        assertEquals(ResponseSource.KNOWLEDGE_BASE, result.source)
+    }
+
+    @Test
+    fun `should keep zero confidence for cached answer without user verification`() {
+        val entryId = UUID.randomUUID()
+        val cached =
+            io.vedra.domain.model.LlmResponseCacheEntry(
+                tenantId = tenantId,
+                questionHash = "h",
+                normalizedQuestion = "q",
+                originalQuestion = "q",
+                answer = "Cached",
+                modelVersion = "m",
+                confidence = 0.0,
+                responseSource = ResponseSource.AI_GENERAL,
+                contextEntryIds = listOf(entryId),
+                expiresAt =
+                    java.time.Instant
+                        .now()
+                        .plusSeconds(60),
+            )
+        every { llmCacheService.lookup(any(), any(), any()) } returns cached
+        every { knowledgeRepository.findByIds(listOf(entryId)) } returns
+            listOf(knowledgeEntry(entryId).copy(answerSource = AnswerSource.AI_GENERATED, accepted = false))
+
+        val result = service.answerQuestion("Q?", listOf(null), tenantId)
+
+        assertEquals(0.0, result.confidence)
+        assertEquals(ResponseSource.AI_GENERAL, result.source)
+    }
+
     private fun knowledgeEntry(id: UUID) =
         KnowledgeEntry(
             id = id,

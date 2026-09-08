@@ -26,6 +26,30 @@ interface SpringDataLlmResponseCacheRepository : JpaRepository<LlmResponseCacheE
         now: Instant = Instant.now(),
     ): LlmResponseCacheEntity?
 
+    @Query(
+        value = """
+            SELECT * FROM llm_response_cache
+            WHERE context_entry_ids @> to_jsonb(CAST(:entryId AS TEXT))
+        """,
+        nativeQuery = true,
+    )
+    fun findByEntryId(entryId: String): List<LlmResponseCacheEntity>
+
+    @Modifying
+    @Transactional
+    @Query(
+        value = """
+            UPDATE llm_response_cache
+            SET confidence = :confidence, updated_at = NOW()
+            WHERE id = :id
+        """,
+        nativeQuery = true,
+    )
+    fun updateConfidence(
+        id: UUID,
+        confidence: Double,
+    )
+
     @Modifying
     @Transactional
     @Query(

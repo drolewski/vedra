@@ -16,15 +16,18 @@ class ConfidenceBlockBuilder(
                 ),
             )
 
-    private fun formatConfidence(confidence: Double): String {
-        val percentage = (confidence * 100).toInt()
-        val bar = buildProgressBar(percentage)
-        return "$bar $percentage%"
-    }
+    private fun formatConfidence(confidence: Double): String = formatConfidenceText(confidence)
 
-    private fun buildProgressBar(percentage: Int): String {
-        val filled = percentage / 10
-        val empty = 10 - filled
-        return "█".repeat(filled) + "░".repeat(empty)
+    companion object {
+        fun formatConfidenceText(confidence: Double): String {
+            val percentage = (confidence * 100).toInt()
+            return "${buildProgressBar(percentage)} $percentage%"
+        }
+
+        private fun buildProgressBar(percentage: Int): String {
+            val filled = percentage / 10
+            val empty = 10 - filled
+            return "█".repeat(filled) + "░".repeat(empty)
+        }
     }
 }

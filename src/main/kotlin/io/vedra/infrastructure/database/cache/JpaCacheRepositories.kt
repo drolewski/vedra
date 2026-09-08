@@ -18,6 +18,16 @@ class JpaLlmResponseCacheRepository(
         questionHash: String,
     ): LlmResponseCacheEntry? = springDataRepo.findByHash(tenantId, projectId, questionHash)?.toDomain()
 
+    override fun findByEntryId(entryId: UUID): List<LlmResponseCacheEntry> =
+        springDataRepo.findByEntryId(entryId.toString()).map { it.toDomain() }
+
+    override fun updateConfidence(
+        id: UUID,
+        confidence: Double,
+    ) {
+        springDataRepo.updateConfidence(id, confidence)
+    }
+
     override fun save(entry: LlmResponseCacheEntry): LlmResponseCacheEntry = springDataRepo.save(entry.toEntity()).toDomain()
 
     override fun incrementUsage(id: UUID) {
