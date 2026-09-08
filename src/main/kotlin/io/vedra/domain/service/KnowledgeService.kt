@@ -198,7 +198,7 @@ class KnowledgeService(
             modelVersion = modelVersion,
             confidence = entries.first().score,
             responseSource = ResponseSource.AI_WITH_CONTEXT,
-            contextEntryIds = entries.map { it.id },
+            contextEntryIds = entries.map { it.id } + listOfNotNull(savedEntry?.id),
         )
 
         return AnswerResult(
@@ -232,7 +232,7 @@ class KnowledgeService(
             modelVersion = modelVersion,
             confidence = 0.0,
             responseSource = ResponseSource.AI_GENERAL,
-            contextEntryIds = emptyList(),
+            contextEntryIds = listOfNotNull(savedEntry?.id),
         )
 
         return AnswerResult(

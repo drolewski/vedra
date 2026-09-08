@@ -47,15 +47,20 @@ class OutboxService(
 
     private fun findByAggregateId(aggregateId: String): OutboxEvent? =
         outboxEventRepository
-            .findByAggregateIdAndStatus(aggregateId, OutboxStatus.PENDING)
+            .findByAggregateId(aggregateId)
             .firstOrNull()
+            ?: outboxEventRepository
+                .findByAggregateIdAndStatus(aggregateId, OutboxStatus.PENDING)
+                .firstOrNull()
 
     private fun saveWithDedup(
         event: OutboxEvent,
         aggregateId: String,
     ): OutboxEvent =
         try {
-            outboxEventRepository.save(event)
+            val saved = outboxEventRepository.save(event)
+            outboxEventRepository.flush()
+            saved
         } catch (e: DataIntegrityViolationException) {
             findByAggregateId(aggregateId) ?: throw e
         }

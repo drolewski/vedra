@@ -4,7 +4,6 @@ import io.github.oshai.kotlinlogging.KotlinLogging
 import io.vedra.domain.service.IndustryService
 import io.vedra.domain.service.TenantProjectService
 import io.vedra.infrastructure.outbox.service.OutboxService
-import io.vedra.infrastructure.slack.exception.SlackApiException
 import io.vedra.infrastructure.slack.exception.SlackPayloadException
 import io.vedra.infrastructure.slack.model.dto.SlackInteractionPayload
 import io.vedra.infrastructure.slack.service.outbox.SlackFeedbackHandler.Companion.EVENT_TYPE
@@ -408,19 +407,38 @@ class SlackInteractiveRequestHandler(
             logger.warn { "Cannot resolve tenant for promote interaction teamId=$teamId" }
             return ResponseEntity.ok().build()
         }
-        outboxService.saveEvent(
-            eventType = SlackPromoteToPublicHandler.EVENT_TYPE,
-            aggregateId = "promote_${feedbackId}_$userId",
-            payload =
-                mapOf(
-                    "feedbackId" to feedbackId,
-                    "userId" to userId,
-                    "tenantId" to tenantId,
-                    "channelId" to (channelId ?: ""),
-                ),
-        )
+        try {
+            outboxService.saveEvent(
+                eventType = SlackPromoteToPublicHandler.EVENT_TYPE,
+                aggregateId = "promote_${feedbackId}_$userId",
+                payload =
+                    mapOf(
+                        "feedbackId" to feedbackId,
+                        "userId" to userId,
+                        "tenantId" to tenantId,
+                        "channelId" to (channelId ?: ""),
+                    ),
+            )
+        } catch (e: Exception) {
+            logger.warn(e) { "Duplicate promote click feedbackId=$feedbackId userId=$userId, ignoring" }
+        }
         logger.info { "Promoted entry $feedbackId → public by $userId" }
+        hidePromoteButton(payload)
         return ResponseEntity.ok().build()
+    }
+
+    private fun hidePromoteButton(payload: Map<String, Any>) {
+        try {
+            val interaction = parsePayload(payload) ?: return
+            if (!interaction.hasMessageContext) return
+            slackMessageService.removePromoteButton(
+                channel = interaction.channelId!!,
+                messageTs = interaction.messageTs!!,
+                originalBlocks = interaction.originalBlocks!!,
+            )
+        } catch (e: Exception) {
+            logger.warn(e) { "Failed to hide promote button" }
+        }
     }
 
     private fun parsePayload(payload: Map<String, Any>): SlackInteractionPayload? =
@@ -437,16 +455,20 @@ class SlackInteractiveRequestHandler(
         }
 
     private fun saveFeedbackEvent(interaction: SlackInteractionPayload) {
-        outboxService.saveEvent(
-            eventType = EVENT_TYPE,
-            aggregateId = "${interaction.feedbackId}_${interaction.userId}",
-            payload =
-                mapOf(
-                    "feedbackId" to interaction.feedbackId,
-                    "userId" to interaction.userId,
-                    "vote" to interaction.vote,
-                ),
-        )
+        try {
+            outboxService.saveEvent(
+                eventType = EVENT_TYPE,
+                aggregateId = "${interaction.feedbackId}_${interaction.userId}",
+                payload =
+                    mapOf(
+                        "feedbackId" to interaction.feedbackId,
+                        "userId" to interaction.userId,
+                        "vote" to interaction.vote,
+                    ),
+            )
+        } catch (e: Exception) {
+            logger.warn(e) { "Duplicate feedback click feedbackId=${interaction.feedbackId} userId=${interaction.userId}, ignoring" }
+        }
     }
 
     private fun updateMessageButtonsIfNeeded(interaction: SlackInteractionPayload) {
@@ -462,7 +484,7 @@ class SlackInteractiveRequestHandler(
                 originalBlocks = interaction.originalBlocks!!,
                 vote = interaction.vote,
             )
-        } catch (e: SlackApiException) {
+        } catch (e: Exception) {
             logger.error(e) {
                 "Failed to update feedback buttons for message=${interaction.messageTs} " +
                     "in channel=${interaction.channelId}"

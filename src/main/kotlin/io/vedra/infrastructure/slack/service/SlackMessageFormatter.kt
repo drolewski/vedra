@@ -61,6 +61,33 @@ class SlackMessageFormatter {
         return baseBlocks + promoteBlock + confirmationBlock
     }
 
+    fun buildPromotedBlocks(originalBlocks: List<Map<String, Any>>): List<Any> {
+        val confirmationBlock =
+            mapOf(
+                "type" to "context",
+                "elements" to
+                    listOf(
+                        mapOf("type" to "mrkdwn", "text" to "_Udostępniono publicznie 🌍._"),
+                    ),
+            )
+
+        val baseBlocks = originalBlocks.filter { it["block_id"] != FeedbackBlockBuilder.BLOCK_ACTIONS }
+        val actionsBlock =
+            originalBlocks.firstOrNull { it["block_id"] == FeedbackBlockBuilder.BLOCK_ACTIONS }
+
+        @Suppress("UNCHECKED_CAST")
+        val elements = actionsBlock?.get("elements") as? List<Map<String, Any>> ?: emptyList()
+        val remaining = elements.filter { it["action_id"] != ACTION_PROMOTE }
+        if (remaining.isEmpty()) return baseBlocks + confirmationBlock
+        val updatedActions =
+            mapOf(
+                "type" to "actions",
+                "block_id" to FeedbackBlockBuilder.BLOCK_ACTIONS,
+                "elements" to remaining,
+            )
+        return baseBlocks + updatedActions + confirmationBlock
+    }
+
     @Suppress("UNCHECKED_CAST")
     private fun extractPromoteButton(blocks: List<Map<String, Any>>): Map<String, Any>? {
         val actionsBlock = blocks.firstOrNull { it["block_id"] == FeedbackBlockBuilder.BLOCK_ACTIONS }

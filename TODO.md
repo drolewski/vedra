@@ -1,6 +1,7 @@
 # TODOS
 
 ## Dalej
+7. Dodanie integracji po authService tak jak w spec 006
 8. Dodanie Test Planu dla funkcjonalności
 9. Tłumaczenia odpowiedzi/komunikatów statycznych i wybieranie jej na podstawie języka użytkownika
 10. Dzialanie procesu definiowania branży, czy potrzebne są tutaj jakieś dodatkowe informacje, czy wystarczy nazwa branży i opis

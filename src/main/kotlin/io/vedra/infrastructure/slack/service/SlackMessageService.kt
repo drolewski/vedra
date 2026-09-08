@@ -52,4 +52,15 @@ class SlackMessageService(
         @Suppress("UNCHECKED_CAST")
         slackClient.updateMessage(channel, messageTs, updatedBlocks as List<Map<String, Any>>)
     }
+
+    fun removePromoteButton(
+        channel: String,
+        messageTs: String,
+        originalBlocks: List<Map<String, Any>>,
+    ) {
+        logger.debug { "Removing promote button for message=$messageTs in channel=$channel" }
+        val updatedBlocks = messageFormatter.buildPromotedBlocks(originalBlocks)
+        @Suppress("UNCHECKED_CAST")
+        slackClient.updateMessage(channel, messageTs, updatedBlocks as List<Map<String, Any>>)
+    }
 }

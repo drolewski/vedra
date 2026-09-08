@@ -110,7 +110,7 @@ class MessageEventHandler(
 
     private fun isQuestion(text: String): Boolean {
         val trimmed = text.trim()
-        return trimmed.endsWith("?") || trimmed.lowercase().contains("@vedra")
+        return trimmed.endsWith("?") || trimmed.lowercase().contains("@vedra") || trimmed.lowercase().contains("<@U0AMTHWLFDJ>")
     }
 
     companion object {

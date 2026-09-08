@@ -20,10 +20,14 @@ class SlackInteractiveController(
     @PostMapping("/api/v1/slack/interactive", produces = [MediaType.APPLICATION_JSON_VALUE])
     fun handleInteractive(
         @RequestParam payload: String,
-    ): ResponseEntity<Any> {
-        val rawPayload = parseJsonPayload(payload) ?: return ResponseEntity.ok().build()
-        return interactiveRequestHandler.handle(rawPayload)
-    }
+    ): ResponseEntity<Any> =
+        try {
+            val rawPayload = parseJsonPayload(payload) ?: return ResponseEntity.ok().build()
+            interactiveRequestHandler.handle(rawPayload)
+        } catch (e: Exception) {
+            logger.warn(e) { "Interactive handler failed, returning 200 to Slack" }
+            ResponseEntity.ok().build()
+        }
 
     private fun parseJsonPayload(payload: String): Map<String, Any>? =
         try {

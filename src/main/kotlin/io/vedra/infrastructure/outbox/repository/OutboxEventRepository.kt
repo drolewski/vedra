@@ -14,6 +14,8 @@ interface OutboxEventRepository : JpaRepository<OutboxEvent, UUID> {
         status: OutboxStatus,
     ): List<OutboxEvent>
 
+    fun findByAggregateId(aggregateId: String): List<OutboxEvent>
+
     @Query(
         value = """
             SELECT * FROM outbox

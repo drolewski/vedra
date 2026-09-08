@@ -53,6 +53,70 @@ class SlackMessageFormatterTest {
     }
 
     @Test
+    fun `buildPromotedBlocks removes only promote button`() {
+        val original =
+            listOf(
+                mapOf("type" to "section", "text" to mapOf("type" to "mrkdwn", "text" to "answer")),
+                mapOf(
+                    "type" to "actions",
+                    "block_id" to FeedbackBlockBuilder.BLOCK_ACTIONS,
+                    "elements" to
+                        listOf(
+                            mapOf(
+                                "type" to "button",
+                                "text" to mapOf("type" to "plain_text", "text" to FeedbackBlockBuilder.LABEL_HELPFUL),
+                                "action_id" to "feedback_positive",
+                                "value" to "fb-1",
+                            ),
+                            mapOf(
+                                "type" to "button",
+                                "text" to mapOf("type" to "plain_text", "text" to FeedbackBlockBuilder.LABEL_SHARE),
+                                "action_id" to "promote_public",
+                                "value" to "fb-1",
+                            ),
+                        ),
+                ),
+            )
+
+        @Suppress("UNCHECKED_CAST")
+        val result = formatter.buildPromotedBlocks(original) as List<Map<String, Any>>
+
+        val actionsBlock = result.firstOrNull { it["block_id"] == FeedbackBlockBuilder.BLOCK_ACTIONS }
+        assertTrue(actionsBlock != null, "vote buttons should stay")
+        val elements = actionsBlock["elements"] as List<Map<String, Any>>
+        assertEquals(1, elements.size)
+        assertEquals("feedback_positive", elements.first()["action_id"])
+        assertTrue(result.any { it["type"] == "context" })
+    }
+
+    @Test
+    fun `buildPromotedBlocks drops actions block when promote was last button`() {
+        val original =
+            listOf(
+                mapOf("type" to "section", "text" to mapOf("type" to "mrkdwn", "text" to "answer")),
+                mapOf(
+                    "type" to "actions",
+                    "block_id" to FeedbackBlockBuilder.BLOCK_ACTIONS,
+                    "elements" to
+                        listOf(
+                            mapOf(
+                                "type" to "button",
+                                "text" to mapOf("type" to "plain_text", "text" to FeedbackBlockBuilder.LABEL_SHARE),
+                                "action_id" to "promote_public",
+                                "value" to "fb-1",
+                            ),
+                        ),
+                ),
+            )
+
+        @Suppress("UNCHECKED_CAST")
+        val result = formatter.buildPromotedBlocks(original) as List<Map<String, Any>>
+
+        assertTrue(result.none { it["block_id"] == FeedbackBlockBuilder.BLOCK_ACTIONS })
+        assertTrue(result.any { it["type"] == "context" })
+    }
+
+    @Test
     fun `buildConfirmationBlocks without promote button behaves as before`() {
         val original =
             listOf(
