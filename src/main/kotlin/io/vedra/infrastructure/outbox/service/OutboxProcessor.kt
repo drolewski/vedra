@@ -19,7 +19,6 @@ class OutboxProcessor(
     @Value($$"${outbox.cleanup-retention-days:7}") private val cleanupRetentionDays: Long,
 ) {
     @Scheduled(fixedDelayString = $$"${outbox.poll-interval:5000}")
-    @Transactional
     fun processPendingEvents() {
         val pendingEvents = outboxService.getPendingEvents(limit = 10)
 

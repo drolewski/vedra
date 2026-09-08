@@ -5,6 +5,7 @@ import io.vedra.infrastructure.database.outbox.OutboxStatus
 import io.vedra.infrastructure.outbox.repository.OutboxEventRepository
 import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Propagation
 import org.springframework.transaction.annotation.Transactional
 import java.time.Instant
 
@@ -27,16 +28,16 @@ class OutboxService(
         return if (aggregateId != null) saveWithDedup(event, aggregateId) else outboxEventRepository.save(event)
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     fun getPendingEvents(limit: Int = 10): List<OutboxEvent> = outboxEventRepository.findPendingEvents(limit)
 
-    @Transactional
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     fun markAsProcessing(event: OutboxEvent) = updateStatus(event) { markAsProcessing() }
 
-    @Transactional
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     fun markAsCompleted(event: OutboxEvent) = updateStatus(event) { markAsCompleted() }
 
-    @Transactional
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     fun markAsFailed(
         event: OutboxEvent,
         error: String,

@@ -172,7 +172,7 @@ data class HybridSimilarityResultProjection(
     val source: String,
     val accepted: Boolean,
     val semanticScore: Double,
-    val qualityScore: Float,
+    val qualityScore: Double,
     val lastUsedAt: java.time.Instant?,
     val finalScore: Double,
 )
