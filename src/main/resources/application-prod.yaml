@@ -1,25 +1,27 @@
+# Deployment still requires the security work documented in SECURITY.md.
 spring:
+  datasource:
+    url: ${DATABASE_URL}
+    username: ${POSTGRES_USER}
+    password: ${POSTGRES_PASSWORD}
   ai:
+    ollama:
+      base-url: ${OLLAMA_BASE_URL}
     vectorstore:
       pgvector:
-        table-name: "knowledge_entries"
+        table-name: knowledge_entries
         index-type: HNSW
-        distance-type: COSINE
-        dimensions: 1536
+        distance-type: COSINE_DISTANCE
+        dimensions: 768
+        initialize-schema: false
 
 application:
   cors:
-    allowed-origins:
-      - "https://vedra.xpp"
-    allowed-methods:
-      - GET
-      - POST
-      - PUT
-      - PATCH
-      - DELETE
-      - OPTIONS
-    allowed-headers:
-      - Content-Type
-      - Accept-Language
-      - Accept
-      - Authorization
+    allowed-origins: ${CORS_ALLOWED_ORIGINS}
+
+slack:
+  signing-secret: ${SLACK_SIGNING_SECRET}
+  client-id: ${SLACK_CLIENT_ID}
+  client-secret: ${SLACK_CLIENT_SECRET}
+  redirect-url: ${SLACK_REDIRECT_URL}
+  token-encryption-key: ${SLACK_TOKEN_ENCRYPTION_KEY}

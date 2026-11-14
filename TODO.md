@@ -1,54 +1,32 @@
-# TODOS
+# Roadmap
 
-## Dalej
+This is a record of unfinished work, not a release commitment. See [project status](docs/PROJECT_STATUS.md) for the current implementation.
 
-8. Wyczyszczenia bazy danych ze starych encji i danych
-9. uproszczenie modeli
-10. rozpisanie scenariuszy testowych potwierdzających jakość odpowiedzi
+## Before using real workspace data
 
-8. Funkcjonalne przetestowanie całego flow (onboarding, tworzenie projektu, konfiguracja, zbieranie wiedzy, reagowanie na pytania)
-9. Pytania powinny być rozpoznawane na podstawie intencji, a nie na podstawie słów kluczowych itp.
+- [ ] Authenticate HTTP API callers and authorize tenant/project access; protect admin endpoints.
+- [ ] Bind OAuth state to the initiating session, consume it once and test replay/error cases.
+- [ ] Require valid encryption keys, remove plaintext/global-token fallback and define token rotation.
+- [ ] Verify cross-tenant and private/public knowledge isolation, including caches and promotion.
+- [ ] Define retention, deletion and logging rules for messages and generated knowledge.
+- [ ] Run clean-database migrations and complete live Slack/Ollama/PostgreSQL acceptance.
 
-1. Poprawa algorytmu pewności, aktualnie max to 85%, tak być nie powinno. 
-    Reorganizacja algorytmu tak żeby było to blizej pewnosci i oceny miały minimalny wpływ i sens ;)
-    Tak żeby oceny też wpływały na to co algorytm odpowie między sesjami w przypadku niskiej pewności
-2. Dodanie funkcji, aby dla niskiej pewności stworzył nową odpowiedź bazującą na innych kontekstach/llmach ragach
+## Core assistant quality
 
-9. Tłumaczenia odpowiedzi/komunikatów statycznych i wybieranie jej na podstawie języka użytkownika
-10. Dzialanie procesu definiowania branży, czy potrzebne są tutaj jakieś dodatkowe informacje, czy wystarczy nazwa branży i opis
-11. Funkcja umozliwiająca publikowanie danych z prywatnych kanałów do general, aby mogły być analizowane przez AI
-12. Zbieranie danych z dokumentów fizycznych
-13. Integracja z Gemini dla lepszych promptów :)
-14. Integracja z teams oraz google chat
-15. Egzekucja pakietów w zależności od wybranego planu
-16. Dashboard zarządzania pakietami subskrypcjami + pilnowanie limitów
-17. Komunikat o instalacji vedra zamiast tej śmiesznej strony xD
+- [ ] Re-enable usefulness filtering after evaluating it against representative conversations.
+- [ ] Replace punctuation/literal-mention question detection with robust intent and bot-mention handling.
+- [ ] Build an answer-quality evaluation dataset, including unsupported questions and conflicting evidence.
+- [ ] Calibrate confidence presentation and feedback weights; evaluate low-confidence alternatives.
+- [ ] Validate cache invalidation, feedback propagation and model-version changes.
+- [ ] Simplify legacy models and reconcile overlapping specifications.
+- [ ] Complete and record the manual regression checklist in `test-plan/`.
 
------
+## Possible extensions
 
----
-# Pakiety -> Wycenić
-## Free
-- 3 projekty maksymalnie 3 branż + general
-- Analiza 500 wiadomości miesięcznie na kanałach 
-- Odpowiedź na 100 pytań miesiecznie
+- [ ] User-language-aware messages and responses.
+- [ ] Document ingestion and alternative model adapters.
+- [ ] Teams and Google Chat connectors.
+- [ ] Subscription limits, billing and an administration dashboard.
+- [ ] A more complete installation/onboarding experience.
 
-## Pakiet I
-- 10 projektów maksymalnie 3 branż + general
-- Analiza 1000 wiadomości miesięcznie na kanałach
-- Odpowiedź na 1000 pytań miesiecznie
-
-## Pakiet II
-- 50 projektów maksymalnie 10 branż + general
-- Analiza 1000 wiadomości miesięcznie na kanałach
-- Odpowiedź na 1000 pytań miesiecznie
-
-## Pakiet III
-- 50 projektów maksymalnie 50 branż + general
-- Analiza 10000 wiadomości miesięcznie na kanałach
-- Odpowiedź na 10000 pytań miesiecznie
-
-## Enterprise
-- 100 projektów maksymalnie 100 branż + general
-- Analiza 1000000 wiadomości miesięcznie na kanałach
-- Odpowiedź na 1000000 pytań miesiecznie
+Earlier subscription counts and pricing ideas were exploratory; no commercial plans or quotas are promised by this repository.

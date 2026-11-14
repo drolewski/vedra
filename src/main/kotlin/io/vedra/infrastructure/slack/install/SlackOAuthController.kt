@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
+import org.springframework.web.util.HtmlUtils
 import java.net.URI
 
 private val logger = KotlinLogging.logger {}
@@ -38,7 +39,7 @@ class SlackOAuthController(
     ): ResponseEntity<Void> {
         if (!error.isNullOrBlank()) {
             logger.warn { "[INSTALL] OAuth denied by user error=$error" }
-            return ResponseEntity.status(302).location(URI.create("/api/v1/slack/oauth/success?error=$error")).build()
+            return ResponseEntity.status(302).location(URI.create("/api/v1/slack/oauth/success?error=access_denied")).build()
         }
         return try {
             oAuthService.handleCallback(code, state)
@@ -59,9 +60,9 @@ class SlackOAuthController(
                     "<p>Zaproś bota na kanał: <code>/invite @Vedra</code> — przestrzeń utworzy się sama.</p>" +
                     "<p>Szczegóły: <code>/vedra config</code>. Status: <code>/vedra status</code>.</p>"
             } else {
-                "<h1>Instalacja nie powiodła się ($error).</h1>" +
+                "<h1>Instalacja nie powiodła się (${HtmlUtils.htmlEscape(error)}).</h1>" +
                     "<p>Spróbuj ponownie: <a href=\"/api/v1/slack/install\">/api/v1/slack/install</a>. " +
-                    "Jeśli problem wróci, napisz do $ownerEmail.</p>"
+                    "Jeśli problem wróci, napisz do ${HtmlUtils.htmlEscape(ownerEmail)}.</p>"
             }
         return ResponseEntity.ok(body)
     }

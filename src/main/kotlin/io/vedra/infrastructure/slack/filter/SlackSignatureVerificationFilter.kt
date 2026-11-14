@@ -15,6 +15,7 @@ import org.springframework.stereotype.Component
 import java.io.BufferedReader
 import java.io.ByteArrayInputStream
 import java.io.InputStreamReader
+import java.security.MessageDigest
 import java.time.Instant
 import javax.crypto.Mac
 import javax.crypto.spec.SecretKeySpec
@@ -41,9 +42,9 @@ class SlackSignatureVerificationFilter(
         val timestamp = httpRequest.getHeader(SLACK_TIMESTAMP_REQUEST_HEADER)
         val slackSignature = httpRequest.getHeader(SLACK_SIGNATURE)
 
-        if (timestamp == null || slackSignature == null) {
-            logger.warn { "Slack signature headers missing - skipping verification (test mode)" }
-            chain.doFilter(request, response)
+        if (timestamp.isNullOrBlank() || slackSignature.isNullOrBlank() || signingSecret.isBlank()) {
+            logger.warn { "Slack signature verification unavailable or headers missing" }
+            httpResponse.status = HttpStatus.UNAUTHORIZED.value()
             return
         }
 
@@ -56,7 +57,7 @@ class SlackSignatureVerificationFilter(
         val signatureBaseString = "$SLACK_SIGNING_VERSION:$timestamp:${String(body)}"
         val computedSignature = "$SLACK_SIGNING_VERSION=" + computeHmacSha256(signatureBaseString, signingSecret)
 
-        if (computedSignature != slackSignature) {
+        if (!MessageDigest.isEqual(computedSignature.toByteArray(Charsets.UTF_8), slackSignature.toByteArray(Charsets.UTF_8))) {
             httpResponse.status = HttpStatus.UNAUTHORIZED.value()
             return
         }
@@ -65,10 +66,9 @@ class SlackSignatureVerificationFilter(
     }
 
     private fun isTimestampTooOld(timestamp: String): Boolean {
-        val requestTime = Instant.ofEpochSecond(timestamp.toLong())
-        val now = Instant.now()
-        val diff = java.time.Duration.between(requestTime, now)
-        return diff.abs().toMinutes() > 5
+        val requestTime = timestamp.toLongOrNull() ?: return true
+        val now = Instant.now().epochSecond
+        return requestTime < now - 300 || requestTime > now + 300
     }
 
     private fun computeHmacSha256(

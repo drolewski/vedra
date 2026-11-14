@@ -26,7 +26,7 @@ class SlackSlashCommandController(
         @RequestParam("team_id") teamId: String,
         @RequestParam("trigger_id") triggerId: String,
     ): ResponseEntity<Map<String, String>> {
-        logger.info { "Received slash command: $command '$text' in channel=$channelId team=$teamId" }
+        logger.info { "Received slash command: $command in channel=$channelId team=$teamId" }
 
         if (command != "/vedra") {
             return ResponseEntity.ok(mapOf("text" to "Nieznana komenda"))
@@ -38,7 +38,7 @@ class SlackSlashCommandController(
         val response = commandDispatcher.dispatch(slackCommand)
 
         if (response.isNotEmpty()) {
-            logger.info { "Command response: $response" }
+            logger.debug { "Command handled successfully" }
             return ResponseEntity.ok(mapOf("response_type" to "ephemeral", "text" to response))
         }
 

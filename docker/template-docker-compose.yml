@@ -1,21 +1,19 @@
-version: '3.8'
-
 services:
   postgres:
     image: pgvector/pgvector:pg16
     container_name: vedra-postgres
     restart: always
     environment:
-      POSTGRES_USER: [fill]
-      POSTGRES_PASSWORD: [fill]
+      POSTGRES_USER: ${POSTGRES_USER:-vedra}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
       POSTGRES_DB: vedra
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U vedra -d vedra"]
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d vedra"]
       interval: 10s
       timeout: 5s
       retries: 5

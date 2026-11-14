@@ -27,7 +27,7 @@ class MessageEventHandler(
         val workspaceId = event.workspaceId
         val userId = event.userId
 
-        logger.info { "MessageEventHandler received: channel=$channel userId=$userId text=${text?.take(50)}" }
+        logger.info { "MessageEventHandler received: channel=$channel userId=$userId" }
 
         if (channel == null || text.isNullOrBlank() || workspaceId == null || userId == null) {
             logger.info {
@@ -114,7 +114,7 @@ class MessageEventHandler(
 
     private fun isQuestion(text: String): Boolean {
         val trimmed = text.trim()
-        return trimmed.endsWith("?") || trimmed.lowercase().contains("@vedra") || trimmed.lowercase().contains("<@U0AMTHWLFDJ>")
+        return trimmed.endsWith("?") || trimmed.lowercase().contains("@vedra")
     }
 
     companion object {

@@ -55,7 +55,7 @@ class SlackSignatureVerificationFilterTest {
     }
 
     @Test
-    fun `should pass through when timestamp header is missing`() {
+    fun `should return 401 when timestamp header is missing`() {
         val request = mockk<HttpServletRequest>()
         val response = mockk<HttpServletResponse>(relaxed = true)
         val chain = mockk<FilterChain>(relaxed = true)
@@ -67,11 +67,12 @@ class SlackSignatureVerificationFilterTest {
 
         filter.doFilter(request, response, chain)
 
-        verify { chain.doFilter(request, response) }
+        verify { response.status = 401 }
+        verify(exactly = 0) { chain.doFilter(any(), any()) }
     }
 
     @Test
-    fun `should pass through when signature header is missing`() {
+    fun `should return 401 when signature header is missing`() {
         val request = mockk<HttpServletRequest>()
         val response = mockk<HttpServletResponse>(relaxed = true)
         val chain = mockk<FilterChain>(relaxed = true)
@@ -83,7 +84,8 @@ class SlackSignatureVerificationFilterTest {
 
         filter.doFilter(request, response, chain)
 
-        verify { chain.doFilter(request, response) }
+        verify { response.status = 401 }
+        verify(exactly = 0) { chain.doFilter(any(), any()) }
     }
 
     @Test
@@ -205,5 +207,43 @@ class SlackSignatureVerificationFilterTest {
         filter.doFilter(request, response, chain)
 
         verify { chain.doFilter(any(), response) }
+    }
+
+    @Test
+    fun `should reject malformed future and out of range timestamps`() {
+        val now = Instant.now().epochSecond
+        for (timestamp in listOf(
+            "invalid",
+            "",
+            Long.MAX_VALUE.toString(),
+            Long.MIN_VALUE.toString(),
+            (now + 301).toString(),
+            (now - 301).toString(),
+        )) {
+            val request = mockk<HttpServletRequest>()
+            val response = mockk<HttpServletResponse>(relaxed = true)
+            val chain = mockk<FilterChain>(relaxed = true)
+            every { request.requestURI } returns "/api/v1/slack/events"
+            every { request.method } returns "POST"
+            every { request.getHeader("X-Slack-Request-Timestamp") } returns timestamp
+            every { request.getHeader("X-Slack-Signature") } returns "v0=invalid"
+            filter.doFilter(request, response, chain)
+            verify { response.status = 401 }
+            verify(exactly = 0) { chain.doFilter(any(), any()) }
+        }
+    }
+
+    @Test
+    fun `should reject Slack requests when signing secret is missing`() {
+        val request = mockk<HttpServletRequest>()
+        val response = mockk<HttpServletResponse>(relaxed = true)
+        val chain = mockk<FilterChain>(relaxed = true)
+        every { request.requestURI } returns "/api/v1/slack/events"
+        every { request.method } returns "POST"
+        every { request.getHeader("X-Slack-Request-Timestamp") } returns Instant.now().epochSecond.toString()
+        every { request.getHeader("X-Slack-Signature") } returns "v0=invalid"
+        SlackSignatureVerificationFilter("").doFilter(request, response, chain)
+        verify { response.status = 401 }
+        verify(exactly = 0) { chain.doFilter(any(), any()) }
     }
 }

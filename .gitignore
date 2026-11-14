@@ -48,6 +48,15 @@ bin/
 docker/*.yml
 !docker/template-*.yml
 
-# env
-!.env.example
+# Local configuration, credentials, IDE metadata and reports
+.idea/
 .env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.log
+.gitleaks-report*

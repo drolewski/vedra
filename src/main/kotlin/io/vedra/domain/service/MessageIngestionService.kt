@@ -77,8 +77,7 @@ class MessageIngestionService(
         knowledgeRepository.save(entry)
 
         logger.info {
-            "Ingested channel message to knowledge base: messageTs=$messageTs projectId=$projectId " +
-                "summary=${usefulness.summary.take(100)}"
+            "Ingested channel message to knowledge base: messageTs=$messageTs projectId=$projectId"
         }
     }
 
